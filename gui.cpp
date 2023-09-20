@@ -1,5 +1,5 @@
 #include "gui.h"
-using namespace global;
+#include "BT.h"
 
 // Data
 static LPDIRECT3D9              g_pD3D = NULL;
@@ -79,8 +79,10 @@ int GUI() {
             ImGui::Text("LED Display Power:"); ImGui::SameLine();
 
             if (ImGui::Checkbox("Enable LED", &g_globals.enableLED)) {
-                
-                // TODO: send message
+                g_globals.currentID = globals::MessageID::setDisplay;
+                if (!writeData()) {
+                    cout << "Failed to write Enable LED command" << endl;
+                }
             }
 
             ImGui::Text("Temperature mode:"); ImGui::SameLine();
