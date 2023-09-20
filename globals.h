@@ -7,10 +7,11 @@ namespace global {
 		HANDLE hSerial = INVALID_HANDLE_VALUE;
 
 		vector<float> tempData;
-		int tempIndex = -1;
+		float finalTempData[300] = { 0 };
+		int tempIndex = 50;
 
 		bool enableLED = true;
-		bool faren = true;
+		bool faren = false;
 	};
 
 	inline globals g_globals;
