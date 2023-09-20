@@ -169,3 +169,10 @@ bool readData() {
 
     return true;
 }
+
+bool writeData() {
+    CommandData test;
+    test.id = MessageID::setDisplay;
+    cout << sizeof(test) << endl;
+    return true;
+}
