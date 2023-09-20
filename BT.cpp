@@ -201,7 +201,7 @@ bool writeData() {
         return false;
     }
 
-    // reset to default value
+    // reset to default ID value
     g_globals.currentID = globals::MessageID::NA;
    
     return true;
