@@ -1,7 +1,6 @@
 # include "BT.h"
 # include "gui.h"
 # include "globals.h"
-using namespace global;
 
 bool initPair(bool isReconnect) {
     g_globals.hSerial = CreateFile(L"COM5", GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);  // TODO: see if we can list all valid COMM ports for user to select
@@ -171,8 +170,36 @@ bool readData() {
 }
 
 bool writeData() {
-    CommandData test;
-    test.id = MessageID::setDisplay;
-    cout << sizeof(test) << endl;
+    CommandData cmd;
+
+    switch (g_globals.currentID) {
+    case globals::MessageID::NA:
+        return false;
+    case globals::MessageID::setDisplay:
+        cmd.id = globals::MessageID::setDisplay;
+        cmd.data = static_cast<int16_t>(g_globals.enableLED);
+        break;
+    }
+
+    DWORD bytesWritten;
+
+    // SEND SOM
+    if (!WriteFile(g_globals.hSerial, &SOM_MARKER, sizeof(SOM_MARKER), &bytesWritten, NULL)) {
+        cerr << "Error writing SOM to port." << endl;
+        return false;
+    }
+
+    // SEND DATA
+    if (!WriteFile(g_globals.hSerial, &cmd, sizeof(CommandData), &bytesWritten, NULL)) {
+        cerr << "Error writing CommandData to the port." << endl;
+        return false;
+    }
+
+    // SEND EOM
+    if (!WriteFile(g_globals.hSerial, &EOM_MARKER, sizeof(EOM_MARKER), &bytesWritten, NULL)) {
+        cerr << "Error writing EOM to port." << endl;
+        return false;
+    }
+   
     return true;
 }
