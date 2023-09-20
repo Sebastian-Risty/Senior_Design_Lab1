@@ -200,6 +200,9 @@ bool writeData() {
         cerr << "Error writing EOM to port." << endl;
         return false;
     }
+
+    // reset to default value
+    g_globals.currentID = globals::MessageID::NA;
    
     return true;
 }
