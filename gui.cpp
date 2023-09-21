@@ -1,5 +1,5 @@
 #include "gui.h"
-using namespace global;
+#include "BT.h"
 
 // Data
 static LPDIRECT3D9              g_pD3D = NULL;
@@ -174,11 +174,11 @@ int GUI() {
                 ledBox = "Off";
             }
 
-
-            ImGui::Text("Temperature Box Display Power:"); ImGui::SameLine();
-            if (ImGui::Checkbox(ledBox, &g_globals.enableLED))
-            {
-                // TODO send LED on/off message, depends on enableLED val
+            if (ImGui::Checkbox("Enable LED", &g_globals.enableLED)) {
+                g_globals.currentID = globals::MessageID::setDisplay;
+                if (!writeData()) {
+                    cout << "Failed to write Enable LED command" << endl;
+                }
             }
 
 
