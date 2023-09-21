@@ -15,3 +15,5 @@ bool readData();
 bool initPair(bool isReconnect = false);
 
 bool writeData();
+
+string findSerial();

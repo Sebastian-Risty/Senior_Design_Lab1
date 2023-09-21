@@ -2,8 +2,44 @@
 # include "gui.h"
 # include "globals.h"
 
+
+// https://stackoverflow.com/a/56959139, modified
+string findSerial() {
+    char lpTargetPath[5000]; // buffer to store the path of the COMPORTS
+
+    for (int i = 0; i < 255; i++) // checking ports from COM0 to COM255
+    {
+        string port = "COM" + to_string(i); // converting to COM0, COM1, COM2
+        DWORD test = QueryDosDevice(port.c_str(), lpTargetPath, 5000);
+
+        if (test != 0) //QueryDosDevice returns zero if it didn't find an object
+        {
+            string path = lpTargetPath;  // convert to str
+            size_t last = path.find_last_of('\\');  // find end of path
+
+            if (last != string::npos) {
+                string deviceName= path.substr(last + 1);
+
+                if (deviceName.compare("HC-05") == 0) {     // TODO: test what the actual device name of the HC-05 is and cross test on other devices!!
+                    return port;
+                }
+            }
+        }
+    }
+
+    return "";
+}
+
 bool initPair(bool isReconnect) {
-    g_globals.hSerial = CreateFile(L"COM5", GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);  // TODO: see if we can list all valid COMM ports for user to select
+    string port = findSerial();
+
+    while (port.compare("HC-05") != 0) {
+        cout << "Failed to find HC-05 port" << endl;
+        port = findSerial();
+        Sleep(1000);
+    }
+
+    g_globals.hSerial = CreateFile(port.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);  // TODO: see if we can list all valid COMM ports for user to select
 
     if (g_globals.hSerial == INVALID_HANDLE_VALUE) {
         if (!isReconnect) {
