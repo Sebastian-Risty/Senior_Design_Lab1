@@ -14,10 +14,6 @@ bool readData();
 
 bool initPair(bool isReconnect = false);
 
-<<<<<<< Updated upstream
-bool writeData();
-=======
 bool writeData();
 
 wstring findSerial(BLUETOOTH_ADDRESS addr);
->>>>>>> Stashed changes
