@@ -23,6 +23,8 @@ public:
 	MessageID currentID = MessageID::NA;	// update this + any other data needed before calling writeData()
 	bool enableLED = true;
 	bool faren = false;
+
+	bool connected = false;  // true when a BT connection is established
 };
 
 inline globals g_globals;

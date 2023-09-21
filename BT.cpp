@@ -34,7 +34,7 @@ bool initPair(bool isReconnect) {
     string port = findSerial();
 
     while (port.compare("HC-05") != 0) {
-        cout << "Failed to find HC-05 port" << endl;
+        cout << "Failed to find HC-05 port! Retry..." << endl;
         port = findSerial();
         Sleep(1000);
     }
@@ -78,12 +78,13 @@ bool initPair(bool isReconnect) {
         return false;
     }
 
+    g_globals.connected = true;
     return true;
 }
 bool readData() {
     chrono::time_point<chrono::high_resolution_clock> start = chrono::high_resolution_clock::now();
 
-    while (true) {  // Outer loop to keep receiving data
+    while (g_globals.connected) {  // Outer loop to keep receiving data
         DWORD bytesRead;
         int16_t buffer[512] = { 0 };
         int bufferIndex = 0;
@@ -142,6 +143,7 @@ bool readData() {
             else { //no message received
                 chrono::time_point<chrono::high_resolution_clock> end = chrono::high_resolution_clock::now();
                 if (chrono::duration_cast<chrono::seconds>(end - start).count() >= 2) {
+                    g_globals.connected = false;
                     cerr << "Connection lost." << endl;
                     int retryCount = 0;
                     const int maxRetries = 5;
@@ -156,6 +158,7 @@ bool readData() {
                     while (retryCount < maxRetries) {
                         cerr << "Attempting to reconnect... (Attempt " << (retryCount + 1) << ")" << endl;
                         if (initPair(true)) {
+                            g_globals.connected = true;
                             cerr << "Reconnected successfully." << endl;
                             start = chrono::high_resolution_clock::now();
                             break;
