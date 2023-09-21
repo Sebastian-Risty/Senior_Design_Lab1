@@ -3,6 +3,7 @@
 void nw_1hz(){
   if(digitalRead(BT_PIN_STATUS) == LOW){
       pcConnected = false;
+      pcCommandDisplayStatus = false;
   }
 
   //Update connection status
