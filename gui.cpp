@@ -7,15 +7,13 @@ static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
 static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
 static D3DPRESENT_PARAMETERS    g_d3dpp = {};
 
-// Const
 const int MAX_SECONDS = 300;
-//const int DATA_LIMIT = g_globals.tempData.size();
-
-
 
 void setupTempData()
 {
-    for (int i = 0; i < MAX_SECONDS; i++) // TODO tempData initialization
+     //tempData initialization, only relevant for testing
+     //comment out and use actual values from sensor
+    for (int i = 0; i < MAX_SECONDS; i++) 
     {
         if (i < 250 || i > 275)
         {
@@ -36,9 +34,12 @@ void setupTempData()
         return;
     }
 
-    // Iterate until the queue is at max length or each value of the data array is reached
-
+    // Iterate until each value of the data array is reached
+    // Populates finalTempData from newest data to oldest
+    // Since tempData is provided in oldest to newest where the oldest is the val at tempIndex,
+    // Values have reverse order with an offset of shiftIndex in finalTempData
     int x = 0;
+    
     while (x < g_globals.tempData.size())
     {
         //g_globals.tempDataQ.push(g_globals.tempData[g_globals.tempIndex]);
@@ -72,20 +73,24 @@ void setupTempData()
 
         x++;
     }
+    
 }
 
+// Wipes the inputted vector between iterations
+// The gui reads in a completely new vector each time
 void destroyTempData()
 {
     g_globals.tempData = vector<float>();
-    //g_globals.tempDataQ = queue<float>();
-    // finalTempData = new float[300] {};
+
+    // Replace current finalTempData with a new array with -127 as a default value
+    float newFinalTempData[MAX_SECONDS] = { -127 };
+    std::copy(newFinalTempData, newFinalTempData + MAX_SECONDS, &g_globals.finalTempData[0]);
 }
 
 int GUI() {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("TEAM 0xC"), NULL };
     ::RegisterClassEx(&wc);
 
-    // TODO background window styles
     DWORD winStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU; // | WS_BORDER; //WS_OVERLAPPED | WS_THICKFRAME;
 
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 150, 814, 600, NULL, NULL, wc.hInstance, NULL);
@@ -114,6 +119,29 @@ int GUI() {
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     setupTempData();
+
+    // Buffer to store user text message
+    char messageBuf[sizeof(char)*140]{};
+
+    //for (int i = 0; i < (sizeof(char) * 140); i++)
+    //{
+    //    if (i % 25 == 0)
+    //    {
+    //        messageBuf[i] = '\n';
+    //    }
+    //}
+
+    // buffer to store threshold vals
+    float upperThres[MAX_SECONDS + 2]{}; // plus 2 to ensure line goes all the way through graph
+    float lowerThres[MAX_SECONDS + 2]{};
+
+    // user entered phone number
+    static int areaCode = 0;
+    static int phoneNum1 = 0;
+    static int phoneNum2 = 0;
+
+    int phoneCount = 0;
+
 
     // Main loop
     bool done = false;
@@ -151,19 +179,32 @@ int GUI() {
 
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
-            if (isnan(g_globals.finalTempData[0]))
+            // Display current temperature, unless NaN meaning unplugged sensor
+            if (isnan(g_globals.finalTempData[0]) || g_globals.finalTempData[0] <= -127)
             {
-                ImGui::Text("Temperature Sensor is Currently Unplugged");
+                //ImGui::Text("Temperature Sensor is Currently Unplugged");
+
+                // red
+                ImGui::TextColored(ImVec4(255, 0, 0, 255), "Temperature Sensor is Currently Unplugged");
             }
             else if (g_globals.faren)
             {
-                ImGui::Text("Current Temperature in degrees celsius: %.2f", g_globals.finalTempData[0]);
+                //ImGui::Text("Current Temperature in degrees Celsius: %.2f", g_globals.finalTempData[0]);
+
+                // green
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Celsius: %.2f", g_globals.finalTempData[0]);
+
             }
             else
             {
-                ImGui::Text("Current Temperature in degrees farenheit: %.2f", g_globals.finalTempData[0]);
+                //ImGui::Text("Current Temperature in degrees Fahrenheit: %.2f", g_globals.finalTempData[0]);
+
+                // green
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Fahrenheit: %.2f", g_globals.finalTempData[0]);
+
             }
 
+            // LED power checkbox
             const char* ledBox;
             if (g_globals.enableLED)
             {
@@ -174,61 +215,127 @@ int GUI() {
                 ledBox = "Off";
             }
 
-            if (ImGui::Checkbox("Enable LED", &g_globals.enableLED)) {
+            ImGui::Text("Toggle LED Screen Power:"); ImGui::SameLine();
+
+            if (ImGui::Checkbox(ledBox, &g_globals.enableLED)) {
                 g_globals.currentID = globals::MessageID::setDisplay;
                 if (!writeData()) {
                     cout << "Failed to write Enable LED command" << endl;
                 }
             }
 
-
+            // Temperature mode checkbox
             const char* tempBox;
+            double yMin; double yMax;
             if (g_globals.faren)
             {
-                tempBox = "Farenheit";
-                //yMin = 50; yMax = 122;
+                tempBox = "Fahrenheit";
+                yMin = 50; yMax = 122;
             }
             else
             {
-                tempBox = "Celcius";
-                //yMin = 10; yMax = 50;
+                tempBox = "Celsius";
+                yMin = 10; yMax = 50;
             }
 
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
             ImGui::Checkbox(tempBox, &g_globals.faren);
 
-            // TODO: move this or smthn
-            char MessageBuf[250]{};
-            char PhoneBuf[10]{};
-            char TempBuf[5]{};
-            ImGuiInputTextCallback TextEditCallbackStub = nullptr;
-            bool reclaim_focus = false;
-            ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
+            
+            // ImGuiInputTextCallback TextEditCallbackStub = nullptr;
+            // bool reclaim_focus = false;
+            // ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
             // TODO: add this flag "ImGuiInputTextFlags_EscapeClearsAll", current imgui ver is outdated :D
 
+            // TODO: imgui::inputtextwithhint 
 
-            // imgui::inputtextwithhint TODO
+            // Text message attributes:
+            ImGui::Text("\nText Message Information:");
 
-            static std::string textMessage = "";
+            ImGui::Text("Phone Number: +1 ("); ImGui::SameLine();
 
-            ImGui::Text("\nText Message information:");
-            ImGui::Text("Text Message Content:"); ImGui::SameLine();
-            ImGui::InputTextMultiline(" ", MessageBuf, sizeof(MessageBuf), ImVec2(500, ImGui::GetTextLineHeight() * 3), ImGuiInputTextFlags_EnterReturnsTrue);
+            // Phone number entry box width
+            ImGui::PushItemWidth(50); // only affects labelled and framed widgets!!
 
-            static float phoneNum = 0;
-            ImGui::Text("Phone Number:"); ImGui::SameLine();
-            ImGui::InputFloat("  ", &phoneNum, 0.0f, 0.0f, "%.1f", ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CharsDecimal);
+            // Area code
+            ImGui::InputInt("  ", &areaCode, 0, 100, ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
+            ImGui::Text(")"); ImGui::SameLine();
+
+            // First three digits
+            ImGui::InputInt("   ", &phoneNum1, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
+            ImGui::Text("-"); ImGui::SameLine();
+
+            // Last four digits
+            ImGui::InputInt("    ", &phoneNum2, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+           
+            // Removes set width val
+            //ImGui::PopItemFlag();
+
+            ImGui::PopItemWidth();
+            ImGui::PushItemWidth(75);
+
+            //ImGui::InputDouble("  ", &phoneNum, 0.0f, 0.0f, "%.1f", ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CharsDecimal);
 
             static float lowerThreshold = 0.0f;
             static float upperThreshold = 0.0f;
 
+            
+
+
             // ImGui::Text("Threshold Values:");
-            ImGui::Text("Lower Threshold:"); ImGui::SameLine();
-            ImGui::InputFloat("   ", &lowerThreshold, 0.0f, 0.0f, "%.1f", ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CharsDecimal); //, input_text_flags);
-            ImGui::Text("Upper Threshold:"); ImGui::SameLine();
-            ImGui::InputFloat("    ", &upperThreshold, 0.0f, 0.0f, "%.1f", ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CharsDecimal); //, input_text_flags);
+            if (g_globals.faren)
+            {
+                ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
+                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                {
+                    for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                    {
+                        lowerThres[i] = lowerThreshold;
+                    }
+                }
+                ImGui::Text("Upper Threshold in Fahrenheit:"); ImGui::SameLine();
+                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                {
+                    for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                    {
+                        upperThres[i] = upperThreshold;
+                    }
+                }
+            }
+            else
+            {
+                ImGui::Text("Lower Threshold in Celsius:"); ImGui::SameLine();
+                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                {
+                    for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                    {
+                        lowerThres[i] = lowerThreshold;
+                    }
+                }
+                ImGui::Text("Upper Threshold in Celsius:"); ImGui::SameLine();
+                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                {
+                    for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                    {
+                        upperThres[i] = upperThreshold;
+                    }
+                }
+            }
+            
+            ImGui::PopItemWidth();
+
+
+            ImGui::Text("Text Message Content:"); ImGui::SameLine();
+            //ImGui::PushItemWidth(-1.0f);
+            //ImGui::PushTextWrapPos();
+            ImGui::InputTextMultiline(" ", messageBuf, sizeof(messageBuf), ImVec2(600, ImGui::GetTextLineHeightWithSpacing() * 3)); // 84
+            //ImGui::PopTextWrapPos();
+            //ImGui::PopItemWidth();
+
 
             ImGui::NewLine();
+
+
 
             //ImPlotStyleVar_FitPadding,         // ImVec2, additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
             //ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
@@ -249,50 +356,55 @@ int GUI() {
             // ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
 
 
-            if (!empty(g_globals.finalTempData)) {
-                if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs | ImPlotFlags_NoLegend)) {
-                    if (g_globals.faren)
-                    {
-                        ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Farenheit",
-                            ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                            ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
-                        );
-                    }
-                    else
-                    {
-                        ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celcius",
-                            ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                            ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
-                        );
-                    }
-
-                    double yMin; double yMax;
-                    if (g_globals.faren)
-                    {
-                        tempBox = "Farenheit";
-                        yMin = 50; yMax = 122;
-                    }
-                    else
-                    {
-                        tempBox = "Celcius";
-                        yMin = 10; yMax = 50;
-                    }
+            if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
+                if (g_globals.faren)
+                {
+                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
+                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                    );
+                }
+                else
+                {
+                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
+                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                    );
+                }
 
 
-                    ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
-                    ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
+                ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
+                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
 
-                    // TODO: ImPlotLineFlags_SkipNaN, when enabled a line is drawn from where NaN sections start/end
+                // TODO: ImPlotLineFlags_SkipNaN, when enabled a line is drawn from where NaN sections start/end
+                if (empty(g_globals.finalTempData) == false)
+                {
                     ImPlot::PlotLine("Recorded Temperature", &g_globals.finalTempData[0], MAX_SECONDS + 1,
                         1.0,
                         0,
                         ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
                     );
-
-                    //ImPlot::AddTextCentered()
-
-                    ImPlot::EndPlot();
                 }
+
+                if (empty(lowerThres) == false)
+                {
+                    ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
+                        1.0,
+                        0,
+                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                    );
+                }
+
+                if (empty(upperThres) == false)
+                {
+                    ImPlot::PlotLine("Upper Threshold", &upperThres[0], MAX_SECONDS + 1,
+                        1.0,
+                        0,
+                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                    );
+                }
+                    
+                ImPlot::EndPlot();
             }
 
             ImPlot::PopStyleVar();
@@ -322,6 +434,7 @@ int GUI() {
         if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
             ResetDevice();
 
+        // TODO can change sleep amount
         Sleep(20);
     }
 
