@@ -2,8 +2,105 @@
 # include "gui.h"
 # include "globals.h"
 
+wstring findSerial(BLUETOOTH_ADDRESS addr) {
+    HDEVINFO hDevInfoSet = SetupDiGetClassDevs(&GUID_DEVCLASS_PORTS, NULL, NULL, DIGCF_PRESENT);
+    if (hDevInfoSet == INVALID_HANDLE_VALUE) {
+        return L"";
+    }
+
+    SP_DEVINFO_DATA devInfoData;
+    devInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+    DWORD deviceIndex = 0;
+
+    while (SetupDiEnumDeviceInfo(hDevInfoSet, deviceIndex++, &devInfoData)) {
+        WCHAR deviceID[MAX_DEVICE_ID_LEN];
+        if (CM_Get_Device_IDW(devInfoData.DevInst, deviceID, MAX_DEVICE_ID_LEN, 0) != CR_SUCCESS) {
+            continue;
+        }
+
+        wstring convertedAddress = std::to_wstring(addr.ullLong);
+        //wcout << L"Converted Address: " << convertedAddress << L" Device ID: " << deviceID << endl;
+
+        if (wcsstr(deviceID, L"BTHENUM\\{00001101-0000-1000-8000-00805F9B34FB}_VID&00011234_PID&0001")) {
+            WCHAR comPortName[100];
+            DWORD regDataType;
+            DWORD requiredSize;
+
+            if (!SetupDiGetDeviceRegistryPropertyW(hDevInfoSet, &devInfoData, SPDRP_FRIENDLYNAME, &regDataType, (PBYTE)comPortName, sizeof(comPortName), &requiredSize)) {
+                DWORD error = GetLastError();
+                wcerr << L"Failed to get registry property for device: " << deviceID << L". Error code: " << error << endl;
+            }
+
+            //wcout << L"Friendly Name for matched address: " << comPortName << endl;
+
+            // Extract COM Port from Friendly Name
+            std::wstring friendlyName(comPortName);
+            std::size_t startPos = friendlyName.find(L"(COM");
+            std::size_t endPos = friendlyName.find(L")");
+            if (startPos != std::wstring::npos && endPos != std::wstring::npos) {
+                return friendlyName.substr(startPos + 1, endPos - startPos - 1);
+            }
+        }
+    }
+
+    SetupDiDestroyDeviceInfoList(hDevInfoSet);
+    return L"";
+}
+
 bool initPair(bool isReconnect) {
-    g_globals.hSerial = CreateFile(L"COM5", GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);  // TODO: see if we can list all valid COMM ports for user to select
+    BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(btfrp) };
+    HANDLE hRadio = NULL;
+    HBLUETOOTH_RADIO_FIND hFind = BluetoothFindFirstRadio(&btfrp, &hRadio);
+    std::wstring comPort;
+
+    if (hFind != NULL) {
+        do {
+            BLUETOOTH_RADIO_INFO bri = { sizeof(bri) };
+            BluetoothGetRadioInfo(hRadio, &bri);
+
+            BLUETOOTH_DEVICE_SEARCH_PARAMS bdsp = { sizeof(bdsp) };
+            bdsp.fReturnAuthenticated = TRUE;
+            bdsp.fReturnRemembered = TRUE;
+            bdsp.fReturnUnknown = TRUE;
+            bdsp.fReturnConnected = TRUE;
+            bdsp.fIssueInquiry = TRUE;
+            bdsp.cTimeoutMultiplier = 2;
+            bdsp.hRadio = hRadio;
+
+            BLUETOOTH_DEVICE_INFO bdi = { sizeof(bdi) };
+            HBLUETOOTH_DEVICE_FIND hDevFind = BluetoothFindFirstDevice(&bdsp, &bdi);
+
+            if (hDevFind != NULL) {
+                do {
+                    if (wcscmp(bdi.szName, L"HC-05") == 0) {
+                        std::wcout << L"Found HC-05 with address: " << bdi.Address.ullLong << std::endl;
+
+                        comPort = findSerial(bdi.Address);
+                        if (!comPort.empty()) {
+                            std::wcout << L"HC-05 is on: " << comPort << std::endl;
+                        }
+                        else {
+                            std::cout << "Couldn't determine the COM port for HC-05." << std::endl;
+                        }
+
+                        BluetoothFindDeviceClose(hDevFind);
+                        BluetoothFindRadioClose(hFind);
+                        CloseHandle(hRadio);
+                        break; // Exit the loop since we've found the HC-05
+                    }
+                } while (BluetoothFindNextDevice(hDevFind, &bdi));
+            }
+        } while (comPort.empty());
+    }
+
+    if (comPort.empty()) {
+        cerr << "Couldn't determine the COM port for HC-05." << std::endl;
+        return false;
+    }
+
+    comPort = L"COM5";
+
+    g_globals.hSerial = CreateFileW(comPort.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
     if (g_globals.hSerial == INVALID_HANDLE_VALUE) {
         if (!isReconnect) {
@@ -52,7 +149,7 @@ bool readData() {
         int16_t buffer[512] = { 0 };
         int bufferIndex = 0;
         bool inSync = false;
-        while (true) {
+        while (g_globals.connected) {
             
             int16_t tmp;
 
@@ -69,7 +166,7 @@ bool readData() {
                 }
 
                 start = chrono::high_resolution_clock::now();
-                //cout << "Received " << tmp << endl;
+                cout << "Received " << tmp << endl;
 
                 if (tmp == SOM_MARKER) {
                     // Found the beginning of the message, set the inSync flag
@@ -161,7 +258,7 @@ bool readData() {
            cout << "Last Temp: " << g_globals.tempData.back() << endl;
 
         }
-        else {
+        else if (g_globals.connected){
             cerr << "SOM not found. Invalid data stream." << endl;
         }
     }

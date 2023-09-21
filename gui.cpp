@@ -7,6 +7,91 @@ static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
 static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
 static D3DPRESENT_PARAMETERS    g_d3dpp = {};
 
+<<<<<<< Updated upstream
+=======
+const int MAX_SECONDS = 300;
+
+void setupTempData()
+{
+     //tempData initialization, only relevant for testing
+     //comment out and use actual values from sensor
+    /*
+    for (int i = 0; i < MAX_SECONDS; i++) 
+    {
+        if (i < 250 || i > 275)
+        {
+            //g_globals.tempData.push_back(25 + (rand() % 30));
+            g_globals.tempData.push_back(20 + (i / 200.0));
+
+        }
+        else
+        {
+            g_globals.tempData.push_back(-200);
+        }
+    }
+    */
+
+    // added for saftey, should never reach unless inputs are messed up
+    if (g_globals.tempData.empty() ||
+        g_globals.tempIndex >= g_globals.tempData.size())
+    {
+        return;
+    }
+
+    // Iterate until each value of the data array is reached
+    // Populates finalTempData from newest data to oldest
+    // Since tempData is provided in oldest to newest where the oldest is the val at tempIndex,
+    // Values have reverse order with an offset of shiftIndex in finalTempData
+    int x = 0;
+    
+    while (x < g_globals.tempData.size())
+    {
+        //g_globals.tempDataQ.push(g_globals.tempData[g_globals.tempIndex]);
+        //if (g_globals.tempDataQ.size() > DATA_LIMIT)
+        //{
+        //    g_globals.tempDataQ.pop();
+        //}
+        if (g_globals.tempData[(g_globals.tempData.size() - g_globals.tempIndex) - 1] > -127)
+        {
+            if (g_globals.faren == false)
+            {
+                g_globals.finalTempData[x] = g_globals.tempData[(g_globals.tempData.size() - g_globals.tempIndex) - 1];
+            }
+            else
+            {
+                g_globals.finalTempData[x] = (g_globals.tempData[(g_globals.tempData.size() - g_globals.tempIndex) - 1] * 9.0 / 5.0) + 32;
+            }
+        }
+        else
+        {
+            g_globals.finalTempData[x] = std::sqrt(-1); // make missing data NaN so it is skipped by ImPlot()
+        }
+
+
+        g_globals.tempIndex++;
+
+        if (g_globals.tempIndex >= g_globals.tempData.size())
+        {
+            g_globals.tempIndex = 0;
+        }
+
+        x++;
+    }
+    
+}
+
+// Wipes the inputted vector between iterations
+// The gui reads in a completely new vector each time
+void destroyTempData()
+{
+    g_globals.tempData = vector<float>();
+
+    // Replace current finalTempData with a new array with -127 as a default value
+    float newFinalTempData[MAX_SECONDS] = { -127 };
+    std::copy(newFinalTempData, newFinalTempData + MAX_SECONDS, &g_globals.finalTempData[0]);
+}
+
+>>>>>>> Stashed changes
 int GUI() {
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("TEAM 0xC"), NULL };
     ::RegisterClassEx(&wc);
@@ -126,10 +211,27 @@ int GUI() {
             
             ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f);  // Set line thickness to 2.0
 
+<<<<<<< Updated upstream
             if (!g_globals.tempData.empty()) {
                 if (ImPlot::BeginPlot("Temperature Data")) {
                     ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
                     ImPlot::EndPlot();
+=======
+
+            // ImPlotFlags_NoMouseText to remove text that shows when moving mouse on graph
+            // ImPlotFlags_Equal to change x and y axis pairs
+            // ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
+
+            
+
+            if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
+                if (g_globals.faren)
+                {
+                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
+                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                    );
+>>>>>>> Stashed changes
                 }
             }
 
