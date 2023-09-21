@@ -22,7 +22,7 @@ wstring findSerial(BLUETOOTH_ADDRESS addr) {
         wstring convertedAddress = std::to_wstring(addr.ullLong);
         //wcout << L"Converted Address: " << convertedAddress << L" Device ID: " << deviceID << endl;
 
-        if (wcsstr(deviceID, L"BTHENUM\\{00001101-0000-1000-8000-00805F9B34FB}_VID&00011234_PID&0001")) {
+        if (wcsstr(deviceID, L"BTHENUM\\{00001101-0000-1000-8000-00805F9B34FB}_LOCALMFG&") && wcsstr(deviceID, L"&0&98D391FE83EC_C00000000")) {
             WCHAR comPortName[100];
             DWORD regDataType;
             DWORD requiredSize;
@@ -98,8 +98,6 @@ bool initPair(bool isReconnect) {
         cerr << "Couldn't determine the COM port for HC-05." << std::endl;
         return false;
     }
-
-    comPort = L"COM5";
 
     g_globals.hSerial = CreateFileW(comPort.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 

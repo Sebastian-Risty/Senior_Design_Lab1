@@ -123,7 +123,7 @@ int GUI() {
     setupTempData();
 
     // Buffer to store user text message
-    char messageBuf[sizeof(char)*140]{};
+    char messageBuf[sizeof(char) * 140]{};
 
     //for (int i = 0; i < (sizeof(char) * 140); i++)
     //{
@@ -243,7 +243,7 @@ int GUI() {
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
             ImGui::Checkbox(tempBox, &g_globals.faren);
 
-            
+
             // ImGuiInputTextCallback TextEditCallbackStub = nullptr;
             // bool reclaim_focus = false;
             // ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
@@ -269,7 +269,7 @@ int GUI() {
 
             // Last four digits
             ImGui::InputInt("    ", &phoneNum2, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-           
+
             // Removes set width val
             //ImGui::PopItemFlag();
 
@@ -281,7 +281,7 @@ int GUI() {
             static float lowerThreshold = 0.0f;
             static float upperThreshold = 0.0f;
 
-            
+
 
 
             // ImGui::Text("Threshold Values:");
@@ -323,7 +323,7 @@ int GUI() {
                     }
                 }
             }
-            
+
             ImGui::PopItemWidth();
 
 
@@ -361,98 +361,100 @@ int GUI() {
                     ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
                     ImPlot::EndPlot();
 
-            if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
-                if (g_globals.faren)
-                {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
-                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
-                    );
-                }
-                else
-                {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
-                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
-                    );
-                }
+                    if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
+                        if (g_globals.faren)
+                        {
+                            ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
+                                ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                                ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                            );
+                        }
+                        else
+                        {
+                            ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
+                                ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                                ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                            );
+                        }
 
 
-                ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
-                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
+                        ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
+                        ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
 
-                // TODO: ImPlotLineFlags_SkipNaN, when enabled a line is drawn from where NaN sections start/end
-                if (empty(g_globals.finalTempData) == false)
-                {
-                    ImPlot::PlotLine("Recorded Temperature", &g_globals.finalTempData[0], MAX_SECONDS + 1,
-                        1.0,
-                        0,
-                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
-                    );
+                        // TODO: ImPlotLineFlags_SkipNaN, when enabled a line is drawn from where NaN sections start/end
+                        if (empty(g_globals.finalTempData) == false)
+                        {
+                            ImPlot::PlotLine("Recorded Temperature", &g_globals.finalTempData[0], MAX_SECONDS + 1,
+                                1.0,
+                                0,
+                                ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                            );
+                        }
+
+                        if (empty(lowerThres) == false)
+                        {
+                            ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
+                                1.0,
+                                0,
+                                ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                            );
+                        }
+
+                        if (empty(upperThres) == false)
+                        {
+                            ImPlot::PlotLine("Upper Threshold", &upperThres[0], MAX_SECONDS + 1,
+                                1.0,
+                                0,
+                                ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                            );
+                        }
+
+                        ImPlot::EndPlot();
+                    }
+
+                    ImPlot::PopStyleVar();
+                    ImGui::End();
                 }
 
-                if (empty(lowerThres) == false)
-                {
-                    ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
-                        1.0,
-                        0,
-                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
-                    );
-                }
+                destroyTempData();
+                setupTempData();
 
-                if (empty(upperThres) == false)
+
+                // Rendering
+                ImGui::EndFrame();
+                g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+                g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+                g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+                D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f), (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
+                g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
+                if (g_pd3dDevice->BeginScene() >= 0)
                 {
-                    ImPlot::PlotLine("Upper Threshold", &upperThres[0], MAX_SECONDS + 1,
-                        1.0,
-                        0,
-                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
-                    );
+                    ImGui::Render();
+                    ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+                    g_pd3dDevice->EndScene();
                 }
-                    
-                ImPlot::EndPlot();
+                HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
+
+                // Handle loss of D3D9 device
+                if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+                    ResetDevice();
+
+                // TODO can change sleep amount
+                Sleep(20);
             }
 
-            ImPlot::PopStyleVar();
-            ImGui::End();
+            ImGui_ImplDX9_Shutdown();
+            ImGui_ImplWin32_Shutdown();
+            ImGui::DestroyContext();
+            ImPlot::DestroyContext();
+
+            CleanupDeviceD3D();
+            ::DestroyWindow(hwnd);
+            ::UnregisterClass(wc.lpszClassName, wc.hInstance);
+
+            return 0;
         }
-
-        destroyTempData();
-        setupTempData();
-
-
-        // Rendering
-        ImGui::EndFrame();
-        g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-        g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-        g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-        D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f), (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
-        g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
-        if (g_pd3dDevice->BeginScene() >= 0)
-        {
-            ImGui::Render();
-            ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-            g_pd3dDevice->EndScene();
-        }
-        HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-
-        // Handle loss of D3D9 device
-        if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
-            ResetDevice();
-
-        // TODO can change sleep amount
-        Sleep(20);
     }
-
-    ImGui_ImplDX9_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-    ImPlot::DestroyContext();
-
-    CleanupDeviceD3D();
-    ::DestroyWindow(hwnd);
-    ::UnregisterClass(wc.lpszClassName, wc.hInstance);
-
-    return 0;
 }
 
 bool CreateDeviceD3D(HWND hWnd)
