@@ -16,4 +16,4 @@ bool initPair(bool isReconnect = false);
 
 bool writeData();
 
-string findSerial();
+wstring findSerial(BLUETOOTH_ADDRESS addr);

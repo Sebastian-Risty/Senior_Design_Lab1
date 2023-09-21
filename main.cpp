@@ -3,12 +3,12 @@
 
 int main()
 {
+    initPair();
+
     thread readDataThread(readData);
     thread writeDataThread(writeData);
     thread GUIThread(GUI);
-
-    initPair();
-
+  
     readDataThread.join();
     writeDataThread.join();
     GUIThread.join();

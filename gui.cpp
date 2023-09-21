@@ -13,6 +13,7 @@ void setupTempData()
 {
      //tempData initialization, only relevant for testing
      //comment out and use actual values from sensor
+    /*
     for (int i = 0; i < MAX_SECONDS; i++) 
     {
         if (i < 250 || i > 275)
@@ -26,6 +27,7 @@ void setupTempData()
             g_globals.tempData.push_back(-200);
         }
     }
+    */
 
     // added for saftey, should never reach unless inputs are messed up
     if (g_globals.tempData.empty() ||
@@ -354,7 +356,10 @@ int GUI() {
             // ImPlotFlags_NoMouseText to remove text that shows when moving mouse on graph
             // ImPlotFlags_Equal to change x and y axis pairs
             // ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
-
+            if (!g_globals.tempData.empty()) {
+                if (ImPlot::BeginPlot("Temperature Data")) {
+                    ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
+                    ImPlot::EndPlot();
 
             if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
                 if (g_globals.faren)
