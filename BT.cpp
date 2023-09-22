@@ -141,7 +141,11 @@ bool initPair(bool isReconnect) {
     g_globals.connected = true;
     return true;
 }
+
 bool readData() {
+    // the index in tempData that points to the oldest data point
+    int tempIndex = 0;
+
     chrono::time_point<chrono::high_resolution_clock> start = chrono::high_resolution_clock::now();
 
     while (g_globals.connected) {  // Outer loop to keep receiving data
@@ -239,25 +243,54 @@ bool readData() {
         }
 
         if (inSync) {
-            // Process the buffer now
-            for (int i = 0; i < bufferIndex; ++i) {  // acount for 
+#define ARRAY_SIZE 300
+            //If we get a big chunk of data wrap around and add
+            if (bufferIndex == ARRAY_SIZE+1) {
 
-                if (i == 300) {
-                    g_globals.tempIndex = buffer[i];
-                }
-                else {
-                    g_globals.tempData.push_back((float)buffer[i] / 10.f);
-                }
+                tempIndex = buffer[ARRAY_SIZE];
+                int i = tempIndex;
+                for (int i = 0; i < 300; ++i) {
+                    int currentIndex = (tempIndex + i) % ARRAY_SIZE;
+                    if (buffer[currentIndex] <= -1270) {
+                        g_globals.tempData.push_back(std::sqrt(-1));
+                    }
+                    else {
+                        g_globals.tempData.push_back((float)buffer[currentIndex] / 10.f);
+                    }
 
-                if (g_globals.tempData.size() > 300) {
-                    g_globals.tempData.erase(g_globals.tempData.begin());
+                    if (g_globals.tempData.size() > 300) {
+                        g_globals.tempData.erase(g_globals.tempData.begin());
+                    }
                 }
+                setupTempData(); //update vector values to F if nessecary
+            }
+            else {
+                for (int i = 0; i < bufferIndex; ++i) {
+                    if (buffer[i] <= -1270) {
+                        g_globals.tempData.push_back(std::sqrt(-1));
+                    }
+                    else {
+                        g_globals.tempData.push_back((float)buffer[i] / 10.f);
+                    }
+
+                    if (g_globals.tempData.size() > 300) {
+                        g_globals.tempData.erase(g_globals.tempData.begin());
+                    }
+                }
+                setupTempData(); //update vector values to F if nessecary
             }
 
 
 
            // cout << bufferIndex << endl;
-           cout << "Last Temp: " << g_globals.tempData.back() << endl;
+            if (!empty(g_globals.tempData))
+            {
+                cout << "Last Temp: " << g_globals.tempData.back() << endl;
+            }
+            else
+            {
+                cout << "NO LAST TEMP" << endl;
+            }
 
         }
         else if (g_globals.connected){
