@@ -7,37 +7,86 @@ static LPDIRECT3DDEVICE9        g_pd3dDevice = NULL;
 static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
 static D3DPRESENT_PARAMETERS    g_d3dpp = {};
 
-// tempData but shifted by in order of most to least recent and shifted by tempIndex
-float finalTempData[300] = { -127 };
-
 const int MAX_SECONDS = 300;
 
-// Populate finalTempData using tempData
 void setupTempData()
 {
-    // Iterate until each value of the data array is reached 
-    // populates finalTempData from newest data to oldest
-    // Converts from Celsius to Farenheit if needed
+     //tempData initialization, only relevant for testing
+     //comment out and use actual values from sensor
+    /*
+    for (int i = 0; i < MAX_SECONDS; i++) 
+    {
+        if (i < 250 || i > 275)
+        {
+            //g_globals.tempData.push_back(25 + (rand() % 30));
+            g_globals.tempData.push_back(20 + (i / 200.0));
+
+        }
+        else
+        {
+            g_globals.tempData.push_back(-200);
+        }
+    }
+    */
+
+    // added for saftey, should never reach unless inputs are messed up
+    if (g_globals.tempData.empty() ||
+        g_globals.tempIndex >= g_globals.tempData.size())
+    {
+        return;
+    }
+
+    // Iterate until each value of the data array is reached
+    // Populates finalTempData from newest data to oldest
+    // Since tempData is provided in oldest to newest where the oldest is the val at tempIndex,
+    // Values have reverse order with an offset of shiftIndex in finalTempData
     int x = 0;
+    
     while (x < g_globals.tempData.size())
     {
-        if (g_globals.faren == true)
+        //g_globals.tempDataQ.push(g_globals.tempData[g_globals.tempIndex]);
+        //if (g_globals.tempDataQ.size() > DATA_LIMIT)
+        //{
+        //    g_globals.tempDataQ.pop();
+        //}
+        if (g_globals.tempData[(g_globals.tempData.size() - g_globals.tempIndex) - 1] > -127)
         {
-            if (isnan(g_globals.tempData[x]))
+            if (g_globals.faren == false)
             {
-                finalTempData[g_globals.tempData.size() - x] = g_globals.tempData[x];
+                g_globals.finalTempData[x] = g_globals.tempData[(g_globals.tempData.size() - g_globals.tempIndex) - 1];
             }
             else
             {
-                finalTempData[g_globals.tempData.size() - x] = (g_globals.tempData[x] * 9.0 / 5.0) + 32;
+                g_globals.finalTempData[x] = (g_globals.tempData[(g_globals.tempData.size() - g_globals.tempIndex) - 1] * 9.0 / 5.0) + 32;
             }
         }
         else
         {
-            finalTempData[g_globals.tempData.size() - x] = g_globals.tempData[x];
+            g_globals.finalTempData[x] = std::sqrt(-1); // make missing data NaN so it is skipped by ImPlot()
         }
+
+
+        g_globals.tempIndex++;
+
+        if (g_globals.tempIndex >= g_globals.tempData.size())
+        {
+            g_globals.tempIndex = 0;
+        }
+
         x++;
     }
+    
+}
+
+// Wipes the inputted vector between iterations
+// The gui reads in a completely new vector each time
+void destroyTempData()
+{
+    g_globals.tempData = vector<float>();
+
+    // Replace current finalTempData with a new array with -127 as a default value
+    float newFinalTempData[MAX_SECONDS] = { -127 };
+    std::copy(newFinalTempData, newFinalTempData + MAX_SECONDS, &g_globals.finalTempData[0]);
 }
 
 int GUI() {
@@ -133,21 +182,27 @@ int GUI() {
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
             // Display current temperature, unless NaN meaning unplugged sensor
-            if (isnan(finalTempData[1]))
+            if (isnan(g_globals.finalTempData[0]) || g_globals.finalTempData[0] <= -127)
             {
+                //ImGui::Text("Temperature Sensor is Currently Unplugged");
+
                 // red
                 ImGui::TextColored(ImVec4(255, 0, 0, 255), "Temperature Sensor is Currently Unplugged");
             }
-            else if (!g_globals.faren)
+            else if (g_globals.faren)
             {
+                //ImGui::Text("Current Temperature in degrees Celsius: %.2f", g_globals.finalTempData[0]);
+
                 // green
-                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Celsius: %.2f", finalTempData[1]);
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Celsius: %.2f", g_globals.finalTempData[0]);
 
             }
             else
             {
+                //ImGui::Text("Current Temperature in degrees Fahrenheit: %.2f", g_globals.finalTempData[0]);
+
                 // green
-                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Fahrenheit: %.2f", finalTempData[1]);
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Fahrenheit: %.2f", g_globals.finalTempData[0]);
 
             }
 
@@ -188,6 +243,12 @@ int GUI() {
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
             ImGui::Checkbox(tempBox, &g_globals.faren);
 
+
+            // ImGuiInputTextCallback TextEditCallbackStub = nullptr;
+            // bool reclaim_focus = false;
+            // ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
+            // TODO: add this flag "ImGuiInputTextFlags_EscapeClearsAll", current imgui ver is outdated :D
+
             // TODO: imgui::inputtextwithhint 
 
             // Text message attributes:
@@ -215,8 +276,12 @@ int GUI() {
             ImGui::PopItemWidth();
             ImGui::PushItemWidth(75);
 
+            //ImGui::InputDouble("  ", &phoneNum, 0.0f, 0.0f, "%.1f", ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CharsDecimal);
+
             static float lowerThreshold = 0.0f;
             static float upperThreshold = 0.0f;
+
+
 
 
             // ImGui::Text("Threshold Values:");
@@ -291,107 +356,105 @@ int GUI() {
             // ImPlotFlags_NoMouseText to remove text that shows when moving mouse on graph
             // ImPlotFlags_Equal to change x and y axis pairs
             // ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
-            //if (!g_globals.tempData.empty()) {
-            //    if (ImPlot::BeginPlot("Temperature Data")) {
-            //        ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
-            //        //ImPlot::EndPlot();
+            if (!g_globals.tempData.empty()) {
+                if (ImPlot::BeginPlot("Temperature Data")) {
+                    ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
+                    ImPlot::EndPlot();
 
-            if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
-                if (g_globals.faren)
-                {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
-                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
-                    );
+                    if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
+                        if (g_globals.faren)
+                        {
+                            ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
+                                ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                                ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                            );
+                        }
+                        else
+                        {
+                            ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
+                                ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
+                                ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                            );
+                        }
+
+
+                        ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
+                        ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
+
+                        // TODO: ImPlotLineFlags_SkipNaN, when enabled a line is drawn from where NaN sections start/end
+                        if (empty(g_globals.finalTempData) == false)
+                        {
+                            ImPlot::PlotLine("Recorded Temperature", &g_globals.finalTempData[0], MAX_SECONDS + 1,
+                                1.0,
+                                0,
+                                ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                            );
+                        }
+
+                        if (empty(lowerThres) == false)
+                        {
+                            ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
+                                1.0,
+                                0,
+                                ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                            );
+                        }
+
+                        if (empty(upperThres) == false)
+                        {
+                            ImPlot::PlotLine("Upper Threshold", &upperThres[0], MAX_SECONDS + 1,
+                                1.0,
+                                0,
+                                ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
+                            );
+                        }
+
+                        ImPlot::EndPlot();
+                    }
+
+                    ImPlot::PopStyleVar();
+                    ImGui::End();
                 }
-                else
+
+                destroyTempData();
+                setupTempData();
+
+
+                // Rendering
+                ImGui::EndFrame();
+                g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+                g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+                g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+                D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f), (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
+                g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
+                if (g_pd3dDevice->BeginScene() >= 0)
                 {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
-                        ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
-                    );
+                    ImGui::Render();
+                    ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+                    g_pd3dDevice->EndScene();
                 }
+                HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
 
+                // Handle loss of D3D9 device
+                if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+                    ResetDevice();
 
-                ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
-                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
-
-                if (empty(finalTempData) == false)
-                {
-                    ImPlot::PlotLine("Recorded Temperature", &finalTempData[0], MAX_SECONDS + 1,
-                        1.0,
-                        0,
-                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
-                    );
-                }
-
-                // This empty check doesn't work lmao, by defaul lower and upper thres are filled with 0's
-                // This means if threshold values aren't set, it'll still plot a line at temp = 0
-                // So that means there are two offscreen lines at temp = 0, but those are outside the graph limits so...
-                if (empty(lowerThres) == false)
-                {
-                    ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
-                        1.0,
-                        0,
-                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
-                    );
-                }
-
-                if (empty(upperThres) == false)
-                {
-                    ImPlot::PlotLine("Upper Threshold", &upperThres[0], MAX_SECONDS + 1,
-                        1.0,
-                        0,
-                        ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
-                    );
-                }
-
-                ImPlot::EndPlot();
+                // TODO can change sleep amount
+                Sleep(20);
             }
 
-            ImGui::End();
+            ImGui_ImplDX9_Shutdown();
+            ImGui_ImplWin32_Shutdown();
+            ImGui::DestroyContext();
+            ImPlot::DestroyContext();
 
+            CleanupDeviceD3D();
+            ::DestroyWindow(hwnd);
+            ::UnregisterClass(wc.lpszClassName, wc.hInstance);
 
-            ImPlot::PopStyleVar();
-
-            setupTempData();
-
-
-            // Rendering
-            ImGui::EndFrame();
-            g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-            g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-            g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-            D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f), (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
-            g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
-            if (g_pd3dDevice->BeginScene() >= 0)
-            {
-                ImGui::Render();
-                ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
-                g_pd3dDevice->EndScene();
-            }
-            HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
-
-            // Handle loss of D3D9 device
-            if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
-                ResetDevice();
-
-            Sleep(20);
+            return 0;
         }
     }
-
-    ImGui_ImplDX9_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-    ImPlot::DestroyContext();
-
-
-
-    CleanupDeviceD3D();
-    ::DestroyWindow(hwnd);
-    ::UnregisterClass(wc.lpszClassName, wc.hInstance);
-
-    return 0;
 }
 
 bool CreateDeviceD3D(HWND hWnd)
