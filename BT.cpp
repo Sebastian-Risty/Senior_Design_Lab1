@@ -292,12 +292,23 @@ bool writeData() {
     CommandData cmd;
 
     switch (g_globals.currentID) {
-    case globals::MessageID::NA:
-        return false;
-    case globals::MessageID::setDisplay:
-        cmd.id = globals::MessageID::setDisplay;
-        cmd.data = static_cast<int16_t>(g_globals.enableLED);
-        break;
+        case globals::MessageID::NA:
+            return false;
+        case globals::MessageID::setDisplay:
+            cmd.id = globals::MessageID::setDisplay;
+            cmd.data = static_cast<int16_t>(g_globals.enableLED);
+            break;
+        case globals::MessageID::setBrightness:
+            cmd.id = globals::MessageID::setBrightness;
+            cmd.data = static_cast<int16_t>(g_globals.brightness);
+            break;
+        case globals::MessageID::setDisplayGamma:
+            cmd.id = globals::MessageID::setDisplayGamma;
+            cmd.data = static_cast<int16_t>(g_globals.contrast);
+            break;
+        default:
+            return false;
+            break;
     }
 
     DWORD bytesWritten;
