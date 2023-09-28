@@ -1,4 +1,5 @@
 #include "nw_1hz.h"
+#include "ds_50hz.h"
 
 void nw_1hz(){
   if(digitalRead(BT_PIN_STATUS) == LOW){
@@ -40,12 +41,24 @@ void processCommand(const CommandData& cmd){
       break;
     case MessageID::setDisplay:
       // TODO: update actual value, example for BRAD :D (all data is int16_t, but is just casted from traditional values before being sent over as bytes)
-
       pcCommandDisplayStatus = static_cast<bool>(cmd.data);
       //Serial.print("value received: ");
       //Serial.println(static_cast<int>(test));
       break;
-    
+    case MessageID::setDisplayGamma:
+      if ((cmd.data) < 0){
+        contrast = -1 * (cmd.data);
+      } else{
+        contrast = (cmd.data);
+      }
+      break;
+    case  MessageID::setBrightness:
+      if ((cmd.data) < 0){
+        brightness = -1 * (cmd.data);
+      } else{
+        brightness = (cmd.data);
+      }
+      break;
   }
 }
 

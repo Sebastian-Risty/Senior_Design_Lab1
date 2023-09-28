@@ -8,7 +8,8 @@
 enum struct MessageID : int16_t {
 	NA = 0,
 	setDisplay = 1,			// control display on/off
-	setDisplayGamma = 2		// control display gamma level 
+	setDisplayGamma = 2,		// control display gamma level 
+  setBrightness = 3,   //control brightness level
 };
 
 struct TempData {
