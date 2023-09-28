@@ -18,8 +18,8 @@ public:
 	MessageID currentID = MessageID::NA;	// update this + any other data needed before calling writeData()
 	bool enableLED = false;
 	bool faren = false;
-	int16_t brightness = 200;
-	int16_t contrast = 75;
+	int brightness = 200;
+	int contrast = 75;
 
 	bool connected = false;  // true when a BT connection is established
 };

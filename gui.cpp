@@ -171,6 +171,36 @@ int GUI() {
                 }
             }
 
+            //Update brightness and contrast
+            if (ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 255)) {
+               //do nothing
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Brightness OK")) {
+                g_globals.currentID = globals::MessageID::setBrightness;
+                if (!writeData()) {
+                    cout << "Failed to update brightness" << endl;
+                }
+            }
+
+            if (ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100)) {
+                //do nothing
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Contrast OK")) {
+                g_globals.currentID = globals::MessageID::setDisplayGamma;
+                if (!writeData()) {
+                    cout << "Failed to update contrast" << endl;
+                }
+            }
+
+
+
+
             // Temperature mode checkbox
             const char* tempBox;
             double yMin; double yMax;
