@@ -27,7 +27,7 @@ int dispCycle = 0;  //used to cycle status when it overflows
 //ERROR MESSAGE-RELATED
 String errorMessage = "";
 
-LiquidCrystal lcd(2, 1, 4, 5, 6, 7); // Creates an LCD object. Parameters: (rs, enable, d4, d5, d6, d7) 
+LiquidCrystal lcd(2, 3, 4, 5, 6, 7); // Creates an LCD object. Parameters: (rs, enable, d4, d5, d6, d7) 
 
 
 ////////////////////////////////////////////

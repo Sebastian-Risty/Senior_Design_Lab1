@@ -74,8 +74,8 @@ void ds_50hz(){
      analogWrite(DISPL_V0_PIN, contrast%125);
      analogWrite(DISP_A_PIN, brightness%255); // Generate PWM signal at pin 3, value of 255 (out of 255) ~= 5V (in hte example, they use 5V)
   } else { //Control whether or not the LCD is off
-    analogWrite(3,0); //set brightness to 0
-    analogWrite(11,0); //set contrast to 0
+    analogWrite(DISP_A_PIN,0); //set brightness to 0
+    analogWrite(DISPL_V0_PIN,0); //set contrast to 0
     lcd.clear();
   }
 } //end ds_task

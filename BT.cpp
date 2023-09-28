@@ -74,11 +74,11 @@ bool initPair(bool isReconnect) {
             if (hDevFind != NULL) {
                 do {
                     if (wcscmp(bdi.szName, L"HC-05") == 0) {
-                        std::wcout << L"Found HC-05 with address: " << bdi.Address.ullLong << std::endl;
+                        //std::wcout << L"Found HC-05 with address: " << bdi.Address.ullLong << std::endl;
 
                         comPort = findSerial(bdi.Address);
                         if (!comPort.empty()) {
-                            std::wcout << L"HC-05 is on: " << comPort << std::endl;
+                            std::wcout << L"HC-05 found on: " << comPort << std::endl;
                         }
                         else {
                             std::cout << "Couldn't determine the COM port for HC-05." << std::endl;
@@ -170,7 +170,7 @@ bool readData() {
                 }
 
                 start = chrono::high_resolution_clock::now();
-                cout << "Received " << tmp << endl;
+                //cout << "Received " << tmp << endl;
 
                 if (tmp == SOM_MARKER) {
                     // Found the beginning of the message, set the inSync flag
@@ -279,19 +279,6 @@ bool readData() {
                 }
                 setupTempData(); //update vector values to F if nessecary
             }
-
-
-
-           // cout << bufferIndex << endl;
-            if (!empty(g_globals.tempData))
-            {
-                cout << "Last Temp: " << g_globals.tempData.back() << endl;
-            }
-            else
-            {
-                cout << "NO LAST TEMP" << endl;
-            }
-
         }
         else if (g_globals.connected){
             cerr << "SOM not found. Invalid data stream." << endl;

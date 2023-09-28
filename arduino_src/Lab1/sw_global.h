@@ -3,14 +3,14 @@
 
 #include <string.h>
 
-#define DISPL_V0_PIN 11
-#define DISP_A_PIN 3
-#define BUTTON_PIN 8 
-#define ONE_WIRE_BUS 9
+#define DISPL_V0_PIN 9
+#define DISP_A_PIN 10
+#define BUTTON_PIN 8
+#define ONE_WIRE_BUS 1
 
-#define BT_PIN_RX 12
-#define BT_PIN_TX 13
-#define BT_PIN_STATUS 10
+#define BT_PIN_RX 11
+#define BT_PIN_TX 12   // RX from BT -> pin 3 (TX on arduino)
+#define BT_PIN_STATUS 13
 
 #define RATE_50HZ 20
 #define RATE_1HZ 1000
