@@ -19,6 +19,10 @@ public:
 	bool faren = false;
 
 	bool connected = false;  // true when a BT connection is established
+
+	string phoneNumber = "8154747480";
+	string message = ":D";
+	string carrier = "txt.att.net";
 };
 
 inline globals g_globals;
