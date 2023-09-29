@@ -68,25 +68,12 @@ int GUI() {
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX9_Init(g_pd3dDevice);
 
-    // TODO: using demo window??
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     setupTempData();
 
     // Buffer to store user text message
     char messageBuf[sizeof(char) * 140]{};
-
-    //for (int i = 0; i < (sizeof(char) * 140); i++)
-    //{
-    //    if (i % 25 == 0)
-    //    {
-    //        messageBuf[i] = '\n';
-    //    }
-    //}
-
-    // buffer to store threshold vals
-    float upperThres[MAX_SECONDS + 2]{}; // plus 2 to ensure line goes all the way through graph
-    float lowerThres[MAX_SECONDS + 2]{};
 
     // user entered phone number
     char areaCode[4] = {};
@@ -103,6 +90,15 @@ int GUI() {
     const char* carrierNames[] = { "AT&T", "Boost Mobile", "Consumer Cellular", "Cricket", "C-Spire", "Google Fi", "Mint Mobile",
                 "Sprint", "T-Mobile", "US Cellular", "US Mobile", "Verizon", "Virgin Mobile", "Xfinity Mobile" };
     int numOfCarriers = end(carrierNames) - begin(carrierNames);
+
+    // used for threshold value verification
+    //bool inLowerThres = false;
+    //bool inUpperThres = true;
+  
+
+    // buffer to store threshold vals
+    float upperThres[MAX_SECONDS + 2]{}; // plus 2 to ensure line goes all the way through graph
+    float lowerThres[MAX_SECONDS + 2]{};
 
     // Main loop
     bool done = false;
@@ -192,8 +188,34 @@ int GUI() {
                 yMin = 10; yMax = 50;
             }
 
+            static float lowerThreshold = 0.0f;
+            static float upperThreshold = 0.0f;
+
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
-            ImGui::Checkbox(tempBox, &g_globals.faren); ImGui::SameLine();
+            if (ImGui::Checkbox(tempBox, &g_globals.faren))
+            {
+                if (g_globals.faren)
+                {
+                    // convert to farenheit
+                    lowerThreshold = (lowerThreshold * (9.0 / 5.0)) + 32.0f;
+                    upperThreshold = (upperThreshold * (9.0 / 5.0)) + 32.0f;
+                }
+                else
+                {
+                    // convert to celsius
+                    lowerThreshold = (lowerThreshold - 32.0f) * (5.0 / 9.0);
+                    upperThreshold = (upperThreshold - 32.0f) * (5.0 / 9.0);
+                }
+
+                // update plot
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = upperThreshold;
+                    lowerThres[i] = lowerThreshold;
+                }
+
+            }
+            ImGui::SameLine();
             ImGui::Text("(Double-Click on Graph After Changing Mode)");
 
             // Text message attributes:
@@ -301,84 +323,133 @@ int GUI() {
                 };
             }
 
-
-
-
             ImGui::PopItemWidth();
             ImGui::PushItemWidth(75);
 
-            static float lowerThreshold = 0.0f;
-            static float upperThreshold = 0.0f;
-            bool inLowerThres = false;
-            bool inUpperThres = true;
+            // TODO: so basically...for some reason adding the EnterReturnsTrue flags to the input fields for the threshold values makes checking 
+            // if the lower threshold is greater than the upper threshold (and vice versa) work properly. It comes down to this: 
+            // either we make the user hit enter, or we don't but we handle that case worse. I like the tradeoff of making the user hit enter
+            // since this text makes that clear AND when they don't it's obvious. But if you want to change back, lmk. I'm gonna leave my old 
+            // worse verification method commented out below just in case
+            ImGui::NewLine();
+            ImGui::Text("Threshold Values: Press"); ImGui::SameLine(); 
+            ImGui::TextColored(ImVec4(255, 0, 0, 255), "Enter"); ImGui::SameLine(); ImGui::Text("to Save Your Entry");
 
 
-            // ImGui::Text("Threshold Values:");
             if (g_globals.faren)
             {
                 ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
-                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    inLowerThres = true;
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (lowerThreshold > upperThreshold && upperThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        upperThreshold = upperThreshold + 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         lowerThres[i] = lowerThreshold;
+                        upperThres[i] = upperThreshold;
                     }
                 }
                 ImGui::Text("Upper Threshold in Fahrenheit:"); ImGui::SameLine();
-                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    inUpperThres = true;
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (upperThreshold < lowerThreshold) // && lowerThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        lowerThreshold = lowerThreshold - 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
+                        lowerThres[i] = lowerThreshold;
                     }
                 }
             }
             else
             {
                 ImGui::Text("Lower Threshold in Celsius:"); ImGui::SameLine();
-                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    inLowerThres = true;
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (lowerThreshold > upperThreshold && upperThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        upperThreshold = upperThreshold + 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
+                        upperThres[i] = upperThreshold;
                         lowerThres[i] = lowerThreshold;
                     }
                 }
                 ImGui::Text("Upper Threshold in Celsius:"); ImGui::SameLine();
-                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
-                    inUpperThres = true;
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (upperThreshold < lowerThreshold) // && lowerThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        lowerThreshold = lowerThreshold - 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
+                        lowerThres[i] = lowerThreshold;
                     }
                 }
             }
 
+            // TODO if sticking with making the user hit enter, remove this comment block
             // this monstrosity checks if that the lower and upper thres are valid. If not, reset them
             // ignores 0 since that's the initial value
             // note that if an upper bound is entered that's less than the lower bound, the lower bound changes! We can make it the other way around
-            if (lowerThres[0] != 0 && upperThres[0] != 0 && // inLowerThres &&
-                lowerThres[0] > upperThres[0])
-            {
-                for (int i = 0; i < (MAX_SECONDS + 2); i++)
-                {
-                    upperThres[i] = lowerThres[i] + 1;
-                }
-                upperThreshold = lowerThres[0] + 1;
-            }
-            else if (lowerThres[0] != 0 && upperThres[0] != 0 && inUpperThres &&
-                upperThres[0] < lowerThres[0] &&
-                ((int)(upperThreshold/10) >= ((int)(lowerThreshold/10)))) // don't ask, but this covers the case where 50 is your lower, you want to type 90 so you type 9, then lower resets to 8
-            {
-                for (int i = 0; i < (MAX_SECONDS + 2); i++)
-                {
-                    lowerThres[i] = upperThres[i] - 1;
-                }
-                lowerThreshold = upperThres[0] - 1;
-            }
+            //if (lowerThres[0] != 0 && upperThres[0] != 0 && // inLowerThres &&
+            //    lowerThres[0] > upperThres[0])
+            //{
+            //    for (int i = 0; i < (MAX_SECONDS + 2); i++)
+            //    {
+            //        upperThres[i] = lowerThres[i] + 1;
+            //    }
+            //    upperThreshold = lowerThres[0] + 1;
+            //}
+            //else if (lowerThres[0] != 0 && upperThres[0] != 0 && inUpperThres &&
+            //    upperThres[0] < lowerThres[0] &&
+            //    ((int)(upperThreshold / 10) >= ((int)(lowerThreshold / 10)))) // don't ask, but this covers the case where 50 is your lower, you want to type 90 so you type 9, then lower resets to 8
+            //{
+            //    for (int i = 0; i < (MAX_SECONDS + 2); i++)
+            //    {
+            //        lowerThres[i] = upperThres[i] - 1;
+            //    }
+            //    lowerThreshold = upperThres[0] - 1;
+            //}
 
             ImGui::PopItemWidth();
 
@@ -458,39 +529,24 @@ int GUI() {
                 }
             }
 
-            ImGui::NewLine();
-
             ImGui::PopItemWidth();
-
-
-
-            //ImPlotStyleVar_FitPadding,         // ImVec2, additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
-            //ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
-            //ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
-
-            // To change plot size:
-            // ImPlot::PushStyleVar(ImPlotStyleVar_PlotDefaultSize, ImVec2(-100, 100));
-
-
+            ImGui::NewLine();
 
             ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f);  // Set line thickness to 2.0
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, 1);  // type of point/marker
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 2.0f);  // size of point/marker
 
-
-
-
             if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
                 if (g_globals.faren)
                 {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
+                    ImPlot::SetupAxes("Seconds ago from Current Time", "Temperature in Degrees Fahrenheit",
                         ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
                         ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
                     );
                 }
                 else
                 {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
+                    ImPlot::SetupAxes("Seconds ago from Current Time", "Temperature in Degrees Celsius",
                         ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
                         ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
                     );
@@ -509,7 +565,7 @@ int GUI() {
                     );
                 }
 
-                // This empty check doesn't work lmao, by defaul lower and upper thres are filled with 0's
+                // This empty check doesn't work lmao, by default lower and upper thres are filled with 0's
                 // This means if threshold values aren't set, it'll still plot a line at temp = 0
                 // So that means there are two offscreen lines at temp = 0, but those are outside the graph limits so...
                 if (empty(lowerThres) == false)
