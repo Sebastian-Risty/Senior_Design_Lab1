@@ -89,9 +89,14 @@ int GUI() {
     float lowerThres[MAX_SECONDS + 2]{};
 
     // user entered phone number
-    static int areaCode = 0;
-    static int phoneNum1 = 0;
-    static int phoneNum2 = 0;
+    char areaCode[4] = {};
+    char phoneNum1[4] = {};
+    char phoneNum2[5] = {};
+
+    // use these for sms function call
+    char* areaCodeStr = new char [4];
+    char* phoneNum1Str = new char[4];
+    char* phoneNum2Str = new char[5];
 
     int phoneCount = 0;
     bool enableTextMessage = true;
@@ -189,8 +194,6 @@ int GUI() {
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
             ImGui::Checkbox(tempBox, &g_globals.faren);
 
-            // TODO: imgui::inputtextwithhint 
-
             // Text message attributes:
             ImGui::Text("\nText Message Information:");
 
@@ -200,63 +203,90 @@ int GUI() {
             ImGui::PushItemWidth(50); // only affects labelled and framed widgets!!
 
             // Area code
-            ImGui::InputInt("  ", &areaCode, 0, 100, ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
-            ImGui::Text(")"); ImGui::SameLine();
-
-            // ensure positive and not longer than 3 digits 
-            if (areaCode < 0 || areaCode >= 1000)
+            if (ImGui::InputText("  ", areaCode, sizeof(areaCode), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
             {
-                areaCode = abs(areaCode % 1000);
-            }
-            // ensure not less than 3 digits
-            if (areaCode != 0)
-            {
-                while (areaCode < 100) // TODO: this works except for a case where an areacode starts with 0 (063) would be invalid
+                // update string array and verify proper entry
+                for (int i = 0; i < 3; i++)
                 {
-                    areaCode = areaCode * 10;
+                    if (isdigit(areaCode[i]))
+                    {                        
+                        areaCodeStr[i] = areaCode[i];
+                    }
+                    else // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    {
+                        areaCode[i] = '0';
+                        areaCodeStr[i] = areaCode[i];
+                    }
                 }
             }
+            ImGui::SameLine(); ImGui::Text(")"); ImGui::SameLine();
 
 
             // First three digits
-            ImGui::InputInt("   ", &phoneNum1, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
-            ImGui::Text("-"); ImGui::SameLine();
-
-            // ensure positive and not longer than 3 digits
-            if (phoneNum1 < 0 || phoneNum1 >= 1000)
+            if (ImGui::InputText("   ", phoneNum1, sizeof(phoneNum1), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
             {
-                phoneNum1 = abs(phoneNum1 % 1000);
-            }
-
-            // ensure not less than 3 digits
-            if (phoneNum1 != 0)
-            {
-                while (phoneNum1 < 100)
+                // update string array and verify proper entry
+                for (int i = 0; i < 3; i++)
                 {
-                    phoneNum1 = phoneNum1 * 10;
+                    if (isdigit(phoneNum1[i]))
+                    {
+                        phoneNum1Str[i] = phoneNum1[i];
+                    }
+                    else // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    {
+                        phoneNum1[i] = '0';
+                        phoneNum1Str[i] = phoneNum1[i];
+                    }
                 }
             }
+            ImGui::SameLine(); ImGui::Text("-"); ImGui::SameLine();
             
-
-            // Last four digits
-            ImGui::InputInt("    ", &phoneNum2, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-
-            if (phoneNum2 < 0 || phoneNum2 >= 10000)
+            // last 4 digits
+            if (ImGui::InputText("    ", phoneNum2, sizeof(phoneNum2), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
             {
-                phoneNum2 = abs(phoneNum2 % 10000);
-            }
-
-            // ensure not less than 4 digits
-            if (phoneNum2 != 0)
-            {
-                while (phoneNum2 < 100)
+                // update string array and verify proper entry
+                for (int i = 0; i < 4; i++)
                 {
-                    phoneNum2 = phoneNum2 * 10;
+                    if (isdigit(phoneNum2[i]))
+                    {
+                        phoneNum2Str[i] = phoneNum2[i];
+                    }
+                    else // if .+-*/ entered. OR if entered < 4 digits since chars aren't digits by default
+                    {
+                        phoneNum2[i] = '0';
+                        phoneNum2Str[i] = phoneNum2[i];
+                    }
                 }
             }
 
-            // Removes set width val
-            //ImGui::PopItemFlag();
+            ImGui::SameLine();
+            // List of carrier names for the dropdown
+            const char* carrierNames[] = { "Verizon", "AT&T", "T-Mobile", "Sprint" };
+
+            ImGui::PushItemWidth(100); // only affects labelled and framed widgets!!
+            // Inside your ImGui rendering loop:
+            if (ImGui::Combo("Cell Carrier", (int*)&g_globals.selectedCarrier, carrierNames, 4)) {
+                switch (g_globals.selectedCarrier) {
+                case CellCarrier::Verizon:
+                    g_globals.carrier = "vtext.com";
+                    break;
+                case CellCarrier::AT_T:
+                    g_globals.carrier = "txt.att.net";
+                    break;
+                case CellCarrier::TMobile:
+                    g_globals.carrier = "tmomail.net";
+                    break;
+                case CellCarrier::Sprint:
+                    g_globals.carrier = "pm.sprint.com";
+                    break;
+                default:
+                    g_globals.carrier = "txt.att.net";
+                    break;
+                };
+            }
+
+
+
 
             ImGui::PopItemWidth();
             ImGui::PushItemWidth(75);
@@ -350,6 +380,8 @@ int GUI() {
             ImGui::NewLine();
             ImGui::Text("LED Brightness and Contrast:");
 
+            ImGui::PushItemWidth(300);
+
             //Update brightness and contrast
             if (ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 254)) {
                 //do nothing
@@ -378,6 +410,8 @@ int GUI() {
             }
 
             ImGui::NewLine();
+
+            ImGui::PopItemWidth();
 
 
 

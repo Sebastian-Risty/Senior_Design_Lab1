@@ -1,6 +1,17 @@
 #pragma once
 #include "common.h"
 
+#ifndef CellCarrier
+// enum for carrier options
+enum struct CellCarrier : int {
+	Verizon = 0,
+	AT_T = 1,
+	TMobile = 2,
+	Sprint = 3,
+};
+#endif
+
+
 class globals {
 public:
 	HANDLE hSerial = INVALID_HANDLE_VALUE;
@@ -26,6 +37,8 @@ public:
 	string phoneNumber = "8154747480";
 	string message = ":D";
 	string carrier = "txt.att.net";
+
+	CellCarrier selectedCarrier = CellCarrier::AT_T;
 };
 
 inline globals g_globals;
