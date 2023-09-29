@@ -23,9 +23,9 @@ public:
 
 	bool connected = false;  // true when a BT connection is established
 
-	string phoneNumber = "8154747480";
+	string phoneNumber = "7125420966";
 	string message = ":D";
-	string carrier = "txt.att.net";
+	string carrier = "email.uscc.net";
 };
 
 inline globals g_globals;

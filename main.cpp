@@ -1,8 +1,11 @@
 # include "BT.h"
 # include "gui.h"
+# include "sms.h"
 
 int main()
 {
+    //SendSMS(); TODO: testing
+
     initPair();
 
     thread readDataThread(readData);
