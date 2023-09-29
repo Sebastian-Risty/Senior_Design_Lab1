@@ -91,11 +91,6 @@ int GUI() {
                 "Sprint", "T-Mobile", "US Cellular", "US Mobile", "Verizon", "Virgin Mobile", "Xfinity Mobile" };
     int numOfCarriers = end(carrierNames) - begin(carrierNames);
 
-    // used for threshold value verification
-    //bool inLowerThres = false;
-    //bool inUpperThres = true;
-  
-
     // buffer to store threshold vals
     float upperThres[MAX_SECONDS + 2]{}; // plus 2 to ensure line goes all the way through graph
     float lowerThres[MAX_SECONDS + 2]{};
@@ -145,13 +140,13 @@ int GUI() {
             else if (!g_globals.faren)
             {
                 // green
-                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Celsius: %.2f", finalTempData[1]);
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in Degrees Celsius: %.2f", finalTempData[1]);
 
             }
             else
             {
                 // green
-                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Fahrenheit: %.2f", finalTempData[1]);
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in Degrees Fahrenheit: %.2f", finalTempData[1]);
             }
 
             // LED power checkbox
@@ -179,12 +174,12 @@ int GUI() {
             double yMin; double yMax;
             if (g_globals.faren)
             {
-                tempBox = "Fahrenheit";
+                tempBox = "Fahrenheit ~~";
                 yMin = 50; yMax = 122;
             }
             else
             {
-                tempBox = "Celsius";
+                tempBox = "Celsius ~~";
                 yMin = 10; yMax = 50;
             }
 
@@ -215,19 +210,22 @@ int GUI() {
                 }
 
             }
-            ImGui::SameLine();
-            ImGui::Text("(Double-Click on Graph After Changing Mode)");
+            ImGui::SameLine(); 
+            ImGui::TextColored(ImVec4(255, 0, 0, 255), "Double-Click"); ImGui::SameLine();
+            ImGui::Text("on Graph After Changing Mode");
 
             // Text message attributes:
-            ImGui::Text("\nText Message Information:");
+            ImGui::NewLine();
+            //ImGui::Text("Text Message Information:");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Text Message Information:"); // yellow
 
             ImGui::Text("Phone Number: +1 ("); ImGui::SameLine();
 
             // Phone number entry box width
-            ImGui::PushItemWidth(50); // only affects labelled and framed widgets!!
+            ImGui::PushItemWidth(30); // only affects labelled and framed widgets!!
 
             // Area code
-            if (ImGui::InputText("  ", areaCode, sizeof(areaCode), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+            if (ImGui::InputText(")", areaCode, sizeof(areaCode), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
             {
                 // update string array and verify proper entry
                 for (int i = 0; i < 3; i++)
@@ -239,10 +237,10 @@ int GUI() {
                     }
                 }
             }
-            ImGui::SameLine(); ImGui::Text(")"); ImGui::SameLine();
+            ImGui::SameLine();
 
             // First three digits
-            if (ImGui::InputText("   ", phoneNum1, sizeof(phoneNum1), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+            if (ImGui::InputText("-", phoneNum1, sizeof(phoneNum1), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
             {
                 // update string array and verify proper entry
                 for (int i = 0; i < 3; i++)
@@ -254,10 +252,12 @@ int GUI() {
                     }
                 }
             }
-            ImGui::SameLine(); ImGui::Text("-"); ImGui::SameLine();
+            ImGui::SameLine();
+            ImGui::PopItemWidth();
+            ImGui::PushItemWidth(40);
             
             // last 4 digits
-            if (ImGui::InputText("    ", phoneNum2, sizeof(phoneNum2), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+            if (ImGui::InputText(" ~~ Cell Carrier:", phoneNum2, sizeof(phoneNum2), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
             {
                 // update string array and verify proper entry
                 for (int i = 0; i < 4; i++)
@@ -269,11 +269,12 @@ int GUI() {
                     }
                 }
             }
+            ImGui::PopItemWidth();
 
             // Carrier dropdown
             ImGui::SameLine();
             ImGui::PushItemWidth(150);
-            if (ImGui::Combo("Cell Carrier", (int*)&g_globals.selectedCarrier, carrierNames, numOfCarriers)) {
+            if (ImGui::Combo("  ", (int*)&g_globals.selectedCarrier, carrierNames, numOfCarriers)) {
                 switch (g_globals.selectedCarrier) {
                 case CellCarrier::AT_T:
                     g_globals.carrier = "txt.att.net";
@@ -326,15 +327,11 @@ int GUI() {
             ImGui::PopItemWidth();
             ImGui::PushItemWidth(75);
 
-            // TODO: so basically...for some reason adding the EnterReturnsTrue flags to the input fields for the threshold values makes checking 
-            // if the lower threshold is greater than the upper threshold (and vice versa) work properly. It comes down to this: 
-            // either we make the user hit enter, or we don't but we handle that case worse. I like the tradeoff of making the user hit enter
-            // since this text makes that clear AND when they don't it's obvious. But if you want to change back, lmk. I'm gonna leave my old 
-            // worse verification method commented out below just in case
-            ImGui::NewLine();
+            //ImGui::NewLine();
+            // yellow text
+            //ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Threshold Values:"); ImGui::SameLine();
             ImGui::Text("Threshold Values: Press"); ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Enter"); ImGui::SameLine(); ImGui::Text("to Save Your Entry");
-
 
             if (g_globals.faren)
             {
@@ -427,30 +424,6 @@ int GUI() {
                 }
             }
 
-            // TODO if sticking with making the user hit enter, remove this comment block
-            // this monstrosity checks if that the lower and upper thres are valid. If not, reset them
-            // ignores 0 since that's the initial value
-            // note that if an upper bound is entered that's less than the lower bound, the lower bound changes! We can make it the other way around
-            //if (lowerThres[0] != 0 && upperThres[0] != 0 && // inLowerThres &&
-            //    lowerThres[0] > upperThres[0])
-            //{
-            //    for (int i = 0; i < (MAX_SECONDS + 2); i++)
-            //    {
-            //        upperThres[i] = lowerThres[i] + 1;
-            //    }
-            //    upperThreshold = lowerThres[0] + 1;
-            //}
-            //else if (lowerThres[0] != 0 && upperThres[0] != 0 && inUpperThres &&
-            //    upperThres[0] < lowerThres[0] &&
-            //    ((int)(upperThreshold / 10) >= ((int)(lowerThreshold / 10)))) // don't ask, but this covers the case where 50 is your lower, you want to type 90 so you type 9, then lower resets to 8
-            //{
-            //    for (int i = 0; i < (MAX_SECONDS + 2); i++)
-            //    {
-            //        lowerThres[i] = upperThres[i] - 1;
-            //    }
-            //    lowerThreshold = upperThres[0] - 1;
-            //}
-
             ImGui::PopItemWidth();
 
 
@@ -464,8 +437,20 @@ int GUI() {
             //ImGui::PopTextWrapPos();
             //ImGui::PopItemWidth();
 
+            const char* messageBox;
+            if (enableTextMessage)
+            {
+                // DO NOT DELETE THE SPACE AT THE END
+                messageBox = "On "; 
+            }
+            else
+            {
+                // DO NOT DELETE THE SPACE AT THE END
+                messageBox = "Off ";
+            }
 
-            ImGui::Checkbox("Enable Text Message?", &enableTextMessage);
+            ImGui::Text("Enable Text Message?"); ImGui::SameLine();
+            ImGui::Checkbox(messageBox, &enableTextMessage);
 
             // if text message is enabled AND temperature isn't already outside either threshold
             if (enableTextMessage && !alreadySent)
@@ -505,7 +490,8 @@ int GUI() {
             }
 
             ImGui::NewLine();
-            ImGui::Text("LED Brightness and Contrast:");
+            //ImGui::Text("LED Brightness and Contrast:");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "LED Brightness and Contrast:"); 
 
             ImGui::PushItemWidth(300);
 
@@ -565,9 +551,6 @@ int GUI() {
                     );
                 }
 
-                // This empty check doesn't work lmao, by default lower and upper thres are filled with 0's
-                // This means if threshold values aren't set, it'll still plot a line at temp = 0
-                // So that means there are two offscreen lines at temp = 0, but those are outside the graph limits so...
                 if (empty(lowerThres) == false)
                 {
                     ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
