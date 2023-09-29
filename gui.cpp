@@ -182,21 +182,37 @@ int GUI() {
             }
 
             // Temperature mode checkbox
+            static float lowerThreshold = 0.0f;
+            static float upperThreshold = 0.0f;
+
             const char* tempBox;
             double yMin; double yMax;
             if (g_globals.faren)
             {
                 tempBox = "Fahrenheit ~~";
                 yMin = 50; yMax = 122;
+                lowerThreshold = 50.0f;
+                upperThreshold = 122.0f;
+
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = upperThreshold;
+                    lowerThres[i] = lowerThreshold;
+                }
             }
             else
             {
                 tempBox = "Celsius ~~";
                 yMin = 10; yMax = 50;
-            }
+                lowerThreshold = 10.0f;
+                upperThreshold = 50.0f;
 
-            static float lowerThreshold = 0.0f;
-            static float upperThreshold = 0.0f;
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = upperThreshold;
+                    lowerThres[i] = lowerThreshold;
+                }
+            }
 
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
             if (ImGui::Checkbox(tempBox, &g_globals.faren))
@@ -220,7 +236,6 @@ int GUI() {
                     upperThres[i] = upperThreshold;
                     lowerThres[i] = lowerThreshold;
                 }
-
             }
             ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Double-Click"); ImGui::SameLine();
@@ -345,7 +360,7 @@ int GUI() {
             ImGui::Text("Threshold Values: Press"); ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Enter"); ImGui::SameLine(); ImGui::Text("to Save Your Entry");
 
-            if (g_globals.faren)    // TODO: have a function to be called that can update threshold values so that at init they lines can be shown
+            if (g_globals.faren)
             {
                 ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
                 if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
@@ -361,7 +376,6 @@ int GUI() {
                     {
                         upperThreshold = upperThreshold + 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         lowerThres[i] = lowerThreshold;
@@ -382,7 +396,6 @@ int GUI() {
                     {
                         lowerThreshold = lowerThreshold - 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
@@ -406,7 +419,6 @@ int GUI() {
                     {
                         upperThreshold = upperThreshold + 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
@@ -427,13 +439,11 @@ int GUI() {
                     {
                         lowerThreshold = lowerThreshold - 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
                         lowerThres[i] = lowerThreshold;
                     }
-                    alreadySent = false;
                 }
             }
 
@@ -474,7 +484,7 @@ int GUI() {
                 {
                     // update phone number
                     g_globals.phoneNumber = "";
-                    for (int i = 0; i < 10; i++)    // TODO: do not send message + show warning that no phone number is entered
+                    for (int i = 0; i < 10; i++)
                     {
                         if (i <= 2) // area code
                         {
