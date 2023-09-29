@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "BT.h"
+#include "sms.h"
 
 // Data
 static LPDIRECT3D9              g_pD3D = NULL;
@@ -308,6 +309,7 @@ int GUI() {
                     {
                         upperThres[i] = upperThreshold;
                     }
+                    alreadySent = false;
                 }
             }
 
@@ -345,7 +347,50 @@ int GUI() {
             //ImGui::PopItemWidth();
 
 
+<<<<<<< Updated upstream
             ImGui::Checkbox("Enable Text Message?", &enableTextMessage);
+=======
+            ImGui::Text("Enable Text Message?"); ImGui::SameLine();
+            ImGui::Checkbox(messageBox, &enableTextMessage);
+
+            // if text message is enabled AND temperature isn't already outside either threshold
+            if (enableTextMessage && !alreadySent)
+            {
+                // if outside thresholds, send message
+                // TODO can split up statement if we want a unique message for under lower threshold vs above upper threshold
+                if (finalTempData[1] < lowerThreshold || finalTempData[1] > upperThreshold)
+                {
+                    // update phone number
+                    g_globals.phoneNumber = "";
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (i <= 2) // area code
+                        {
+                            g_globals.phoneNumber.append(std::to_string(areaCode[i]));
+                        }
+                        {
+                            g_globals.phoneNumber.append(std::to_string(phoneNum1[i - 3]));
+                        }
+                        else // last 4 digits
+                        {
+                            g_globals.phoneNumber.append(std::to_string(phoneNum2[i - 6]));
+                        }
+                    }
+
+                    if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
+                        alreadySent = true;
+                        SendSMS();
+                    }
+                }
+            }
+            // if was outside of threshold range (alreadySent == true) AND is now inside threshold range, update alreadySent so text can be sent again
+            else if (alreadySent && 
+                (finalTempData[1] > lowerThreshold) && 
+                (finalTempData[1] < upperThreshold))
+            {
+                alreadySent = false;
+            }
+>>>>>>> Stashed changes
 
             ImGui::NewLine();
             ImGui::Text("LED Brightness and Contrast:");
