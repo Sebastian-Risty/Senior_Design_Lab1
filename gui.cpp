@@ -368,6 +368,7 @@ int GUI() {
                         {
                             g_globals.phoneNumber.append(std::to_string(areaCode[i]));
                         }
+                        else if (i > 2 && i <= 5) // middle 3 digits
                         {
                             g_globals.phoneNumber.append(std::to_string(phoneNum1[i - 3]));
                         }
