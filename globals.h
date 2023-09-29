@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "common.h"
 
 #ifndef CellCarrier
@@ -34,8 +34,8 @@ public:
 
 	bool connected = false;  // true when a BT connection is established
 
-	string phoneNumber = "8154747480";
-	string message = ":D";
+	string phoneNumber = "6305203444";
+	string message = "Wai Gua 吃一袋鸡巴迟钝";
 	string carrier = "txt.att.net";
 
 	CellCarrier selectedCarrier = CellCarrier::AT_T;
