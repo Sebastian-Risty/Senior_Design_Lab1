@@ -12,6 +12,8 @@ static D3DPRESENT_PARAMETERS    g_d3dpp = {};
 float finalTempData[300] = { -127 };
 
 const int MAX_SECONDS = 300;
+bool test = false;
+ImPlotRect b;
 
 // Populate finalTempData using tempData
 void setupTempData()
@@ -210,6 +212,7 @@ int GUI() {
                     lowerThres[i] = lowerThreshold;
                 }
 
+                test = true;
             }
             ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Double-Click"); ImGui::SameLine();
@@ -422,7 +425,7 @@ int GUI() {
                         upperThres[i] = upperThreshold;
                         lowerThres[i] = lowerThreshold;
                     }
-                    alreadySent = false;
+                    alreadySent = false;    //TODO: why is this here
                 }
             }
 
@@ -542,6 +545,12 @@ int GUI() {
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, 1);  // type of point/marker
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 2.0f);  // size of point/marker
 
+            if (test) {
+                ImPlot::SetNextAxesLimits(0, 300, 0, 50, ImPlotCond_None);
+                //ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0, 100.0, ImPlotCond_None);
+                test = false;
+            }
+
             if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
                 if (g_globals.faren)
                 {
@@ -554,13 +563,12 @@ int GUI() {
                 {
                     ImPlot::SetupAxes("Seconds ago from Current Time", "Temperature in Degrees Celsius",
                         ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
+                        ImPlotAxisFlags_Opposite  // visually move y axis to the right side of the graph
                     );
                 }
 
-
                 ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
-                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
+                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);;
 
                 if (empty(finalTempData) == false)
                 {
@@ -589,11 +597,12 @@ int GUI() {
                     );
                 }
 
+                b = ImPlot::GetPlotLimits(IMPLOT_AUTO, IMPLOT_AUTO);
+
                 ImPlot::EndPlot();
             }
 
             ImGui::End();
-
 
             ImPlot::PopStyleVar();
 
