@@ -75,7 +75,7 @@ int GUI() {
 
     // Buffer to store user text message
     char messageBuf[sizeof(char) * 140]{};
-
+    
     // user entered phone number
     char areaCode[4] = {};
     char phoneNum1[4] = {};
@@ -85,7 +85,7 @@ int GUI() {
     bool enableTextMessage = true;
 
     // used to limit to one text message per going over/under threshold
-    bool alreadySent = false;
+    bool alreadySent = true;
 
     // Carrier options
     const char* carrierNames[] = { "AT&T", "Boost Mobile", "Consumer Cellular", "Cricket", "C-Spire", "Google Fi", "Mint Mobile",
@@ -334,7 +334,7 @@ int GUI() {
             ImGui::Text("Threshold Values: Press"); ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Enter"); ImGui::SameLine(); ImGui::Text("to Save Your Entry");
 
-            if (g_globals.faren)
+            if (g_globals.faren)    // TODO: have a function to be called that can update threshold values so that at init they lines can be shown
             {
                 ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
                 if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
@@ -463,19 +463,19 @@ int GUI() {
                 {
                     // update phone number
                     g_globals.phoneNumber = "";
-                    for (int i = 0; i < 10; i++)
+                    for (int i = 0; i < 10; i++)    // TODO: do not send message + show warning that no phone number is entered
                     {
                         if (i <= 2) // area code
                         {
-                            g_globals.phoneNumber.append(std::to_string(areaCode[i]));
+                            g_globals.phoneNumber.push_back(areaCode[i]);
                         }
                         else if (i > 2 && i <= 5) // middle 3 digits
                         {
-                            g_globals.phoneNumber.append(std::to_string(phoneNum1[i - 3]));
+                            g_globals.phoneNumber.push_back(phoneNum1[i - 3]);
                         }
                         else // last 4 digits
                         {
-                            g_globals.phoneNumber.append(std::to_string(phoneNum2[i - 6]));
+                            g_globals.phoneNumber.push_back(phoneNum2[i - 6]);
                         }
                     }
 

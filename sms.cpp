@@ -10,7 +10,7 @@ void SendSMS()
     if (curl)
     {
         struct curl_slist* headers = NULL;
-        headers = curl_slist_append(headers, "Authorization: Bearer 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");
+        headers = curl_slist_append(headers, "Authorization: Bearer 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");
         headers = curl_slist_append(headers, "Content-Type: application/json");
 
         std::ostringstream payloadStream;

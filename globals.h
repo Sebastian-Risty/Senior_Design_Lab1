@@ -44,8 +44,8 @@ public:
 
 	bool connected = false;  // true when a BT connection is established
 
-	string phoneNumber = "6305203444";
-	string message = "default message";
+	string phoneNumber = "8154747480";
+	string message = "temp sensor warning!";
 	string carrier = "txt.att.net";
 
 	CellCarrier selectedCarrier = CellCarrier::AT_T; // TODO don't think this needs to be a global, only see it in gui.cpp. Gonna leave because idk if you want to add it to sms logic
