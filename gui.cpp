@@ -82,7 +82,7 @@ int GUI() {
     char phoneNum2[5] = {};
 
     int phoneCount = 0;
-    bool enableTextMessage = true;
+    bool enableTextMessage = false;
 
     // used to limit to one text message per going over/under threshold
     bool alreadySent = true;
@@ -451,8 +451,24 @@ int GUI() {
                 messageBox = "Off ";
             }
 
-            ImGui::Text("Enable Text Message?"); ImGui::SameLine();
-            ImGui::Checkbox(messageBox, &enableTextMessage);
+            ImGui::Text("Enable Text Message?");
+
+            if (areaCode[0] > 1 && phoneNum1[0] > 1) {  // check for valid phonenumber
+                ImGui::SameLine();
+                ImGui::Checkbox(messageBox, &enableTextMessage);
+            }
+            else {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);   // grey out checkbox when it is disabled
+                ImGui::SameLine();
+                ImGui::Checkbox(messageBox, &enableTextMessage);
+                ImGui::PopItemFlag();
+                ImGui::PopStyleVar();
+                ImGui::SameLine();
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));   // red text
+                ImGui::Text("Enter valid number!");
+                ImGui::PopStyleColor();
+            }
 
             // if text message is enabled AND temperature isn't already outside either threshold
             if (enableTextMessage && !alreadySent)
