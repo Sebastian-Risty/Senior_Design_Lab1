@@ -12,8 +12,6 @@ static D3DPRESENT_PARAMETERS    g_d3dpp = {};
 float finalTempData[300] = { -127 };
 
 const int MAX_SECONDS = 300;
-bool test = false;
-ImPlotRect b;
 
 // Populate finalTempData using tempData
 void setupTempData()
@@ -87,7 +85,7 @@ int GUI() {
     bool enableTextMessage = false;
 
     // used to limit to one text message per going over/under threshold
-    bool alreadySent = true;
+    bool alreadySent = false;
 
     // Carrier options
     const char* carrierNames[] = { "AT&T", "Boost Mobile", "Consumer Cellular", "Cricket", "C-Spire", "Google Fi", "Mint Mobile",
@@ -134,8 +132,13 @@ int GUI() {
 
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
-            // Display current temperature, unless NaN meaning unplugged sensor
-            if (isnan(finalTempData[1]))
+            // Display current temperature
+            if (!g_globals.connected) // disconnected from box
+            {
+                // red
+                ImGui::TextColored(ImVec4(255, 0, 0, 255), "Bluetooth Disconnected, No Data Available");
+            }
+            else if (isnan(finalTempData[1])) // unplugged sensor
             {
                 // red
                 ImGui::TextColored(ImVec4(255, 0, 0, 255), "Temperature Sensor is Currently Unplugged");
@@ -150,6 +153,12 @@ int GUI() {
             {
                 // green
                 ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in Degrees Fahrenheit: %.2f", finalTempData[1]);
+            }
+
+            // update LED power if disconnected
+            if (!g_globals.connected)
+            {
+                g_globals.enableLED = false;
             }
 
             // LED power checkbox
@@ -173,21 +182,37 @@ int GUI() {
             }
 
             // Temperature mode checkbox
+            static float lowerThreshold = 0.0f;
+            static float upperThreshold = 0.0f;
+
             const char* tempBox;
             double yMin; double yMax;
             if (g_globals.faren)
             {
                 tempBox = "Fahrenheit ~~";
                 yMin = 50; yMax = 122;
+                lowerThreshold = 50.0f;
+                upperThreshold = 122.0f;
+
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = upperThreshold;
+                    lowerThres[i] = lowerThreshold;
+                }
             }
             else
             {
                 tempBox = "Celsius ~~";
                 yMin = 10; yMax = 50;
-            }
+                lowerThreshold = 10.0f;
+                upperThreshold = 50.0f;
 
-            static float lowerThreshold = 0.0f;
-            static float upperThreshold = 0.0f;
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = upperThreshold;
+                    lowerThres[i] = lowerThreshold;
+                }
+            }
 
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
             if (ImGui::Checkbox(tempBox, &g_globals.faren))
@@ -211,8 +236,6 @@ int GUI() {
                     upperThres[i] = upperThreshold;
                     lowerThres[i] = lowerThreshold;
                 }
-
-                test = true;
             }
             ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Double-Click"); ImGui::SameLine();
@@ -337,7 +360,7 @@ int GUI() {
             ImGui::Text("Threshold Values: Press"); ImGui::SameLine(); 
             ImGui::TextColored(ImVec4(255, 0, 0, 255), "Enter"); ImGui::SameLine(); ImGui::Text("to Save Your Entry");
 
-            if (g_globals.faren)    // TODO: have a function to be called that can update threshold values so that at init they lines can be shown
+            if (g_globals.faren)
             {
                 ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
                 if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
@@ -353,7 +376,6 @@ int GUI() {
                     {
                         upperThreshold = upperThreshold + 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         lowerThres[i] = lowerThreshold;
@@ -374,7 +396,6 @@ int GUI() {
                     {
                         lowerThreshold = lowerThreshold - 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
@@ -398,7 +419,6 @@ int GUI() {
                     {
                         upperThreshold = upperThreshold + 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
@@ -419,13 +439,11 @@ int GUI() {
                     {
                         lowerThreshold = lowerThreshold - 1;
                     }
-
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
                         lowerThres[i] = lowerThreshold;
                     }
-                    alreadySent = false;    //TODO: why is this here
                 }
             }
 
@@ -482,7 +500,7 @@ int GUI() {
                 {
                     // update phone number
                     g_globals.phoneNumber = "";
-                    for (int i = 0; i < 10; i++)    // TODO: do not send message + show warning that no phone number is entered
+                    for (int i = 0; i < 10; i++)
                     {
                         if (i <= 2) // area code
                         {
@@ -498,7 +516,7 @@ int GUI() {
                         }
                     }
 
-                  if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
+                    if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
                         alreadySent = true;
                         SendSMS();
                     }
@@ -545,12 +563,6 @@ int GUI() {
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, 1);  // type of point/marker
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 2.0f);  // size of point/marker
 
-            if (test) {
-                ImPlot::SetNextAxesLimits(0, 300, 0, 50, ImPlotCond_None);
-                //ImPlot::SetNextAxisLimits(ImAxis_Y1, 0.0, 100.0, ImPlotCond_None);
-                test = false;
-            }
-
             if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
                 if (g_globals.faren)
                 {
@@ -563,12 +575,12 @@ int GUI() {
                 {
                     ImPlot::SetupAxes("Seconds ago from Current Time", "Temperature in Degrees Celsius",
                         ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
-                        ImPlotAxisFlags_Opposite  // visually move y axis to the right side of the graph
+                        ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
                     );
                 }
 
                 ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
-                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);;
+                ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
 
                 if (empty(finalTempData) == false)
                 {
@@ -596,8 +608,6 @@ int GUI() {
                         ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
                     );
                 }
-
-                b = ImPlot::GetPlotLimits(IMPLOT_AUTO, IMPLOT_AUTO);
 
                 ImPlot::EndPlot();
             }
