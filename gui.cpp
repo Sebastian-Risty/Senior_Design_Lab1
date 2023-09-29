@@ -46,7 +46,7 @@ int GUI() {
 
     DWORD winStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU; // | WS_BORDER; //WS_OVERLAPPED | WS_THICKFRAME;
 
-    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 150, 814, 680, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 100, 814, 700, NULL, NULL, wc.hInstance, NULL);
 
     if (!CreateDeviceD3D(hwnd))
     {
