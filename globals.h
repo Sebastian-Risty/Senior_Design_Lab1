@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "common.h"
 
 class globals {
@@ -23,9 +23,9 @@ public:
 
 	bool connected = false;  // true when a BT connection is established
 
-	string phoneNumber = "7125420966";
-	string message = ":D";
-	string carrier = "email.uscc.net";
+	string phoneNumber = "6305203444";
+	string message = "Wai Gua 吃一袋鸡巴迟钝";
+	string carrier = "txt.att.net";
 };
 
 inline globals g_globals;
