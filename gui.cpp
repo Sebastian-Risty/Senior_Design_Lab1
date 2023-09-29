@@ -82,10 +82,10 @@ int GUI() {
     char phoneNum2[5] = {};
 
     int phoneCount = 0;
-    bool enableTextMessage = true;
+    bool enableTextMessage = false;
 
     // used to limit to one text message per going over/under threshold
-    bool alreadySent = true;
+    bool alreadySent = false;
 
     // Carrier options
     const char* carrierNames[] = { "AT&T", "Boost Mobile", "Consumer Cellular", "Cricket", "C-Spire", "Google Fi", "Mint Mobile",
@@ -132,8 +132,13 @@ int GUI() {
 
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
-            // Display current temperature, unless NaN meaning unplugged sensor
-            if (isnan(finalTempData[1]))
+            // Display current temperature
+            if (!g_globals.connected) // disconnected from box
+            {
+                // red
+                ImGui::TextColored(ImVec4(255, 0, 0, 255), "Bluetooth Disconnected, No Data Available");
+            }
+            else if (isnan(finalTempData[1])) // unplugged sensor
             {
                 // red
                 ImGui::TextColored(ImVec4(255, 0, 0, 255), "Temperature Sensor is Currently Unplugged");
@@ -148,6 +153,12 @@ int GUI() {
             {
                 // green
                 ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in Degrees Fahrenheit: %.2f", finalTempData[1]);
+            }
+
+            // update LED power if disconnected
+            if (!g_globals.connected)
+            {
+                g_globals.enableLED = false;
             }
 
             // LED power checkbox
@@ -479,7 +490,7 @@ int GUI() {
                         }
                     }
 
-                  if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
+                    if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
                         alreadySent = true;
                         SendSMS();
                     }
