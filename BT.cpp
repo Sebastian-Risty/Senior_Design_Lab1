@@ -78,7 +78,9 @@ bool initPair(bool isReconnect) {
 
                         comPort = findSerial(bdi.Address);
                         if (!comPort.empty()) {
-                            std::wcout << L"HC-05 found on: " << comPort << std::endl;
+                            if (!isReconnect) {
+                                std::wcout << L"HC-05 found on: " << comPort << std::endl;
+                            }
                         }
                         else {
                             std::cout << "Couldn't determine the COM port for HC-05." << std::endl;
@@ -101,11 +103,21 @@ bool initPair(bool isReconnect) {
 
     g_globals.hSerial = CreateFileW(comPort.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
-    if (g_globals.hSerial == INVALID_HANDLE_VALUE) {
-        if (!isReconnect) {
-            cerr << "Failed connection to selected COM port." << endl;
+    while (g_globals.hSerial == INVALID_HANDLE_VALUE) {
+        if (isReconnect) {
+            cout << "Attempting to reconnect..." << endl;
         }
-        return false;
+        else {
+            cout << "Attempting to connect..." << endl;
+        }
+
+        Sleep(1000);
+
+        g_globals.hSerial = CreateFileW(comPort.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    }
+
+    if (!isReconnect) {
+        cout << "Successfully Connected!" << endl;
     }
 
     DCB serialParams = {};
@@ -219,8 +231,7 @@ bool readData() {
                         g_globals.hSerial = INVALID_HANDLE_VALUE;  // Set it to an invalid value after closing
                     }
 
-                    while (retryCount < maxRetries) {
-                        cerr << "Attempting to reconnect... (Attempt " << (retryCount + 1) << ")" << endl;
+                    while (retryCount < INT_MAX) {
                         if (initPair(true)) {
                             g_globals.connected = true;
                             cerr << "Reconnected successfully." << endl;
