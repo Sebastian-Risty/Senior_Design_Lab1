@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "BT.h"
+#include "sms.h"
 
 // Data
 static LPDIRECT3D9              g_pD3D = NULL;
@@ -46,7 +47,7 @@ int GUI() {
 
     DWORD winStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU; // | WS_BORDER; //WS_OVERLAPPED | WS_THICKFRAME;
 
-    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 150, 814, 600, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 100, 814, 700, NULL, NULL, wc.hInstance, NULL);
 
     if (!CreateDeviceD3D(hwnd))
     {
@@ -68,7 +69,6 @@ int GUI() {
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX9_Init(g_pd3dDevice);
 
-    // TODO: using demo window??
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     setupTempData();
@@ -76,25 +76,25 @@ int GUI() {
     // Buffer to store user text message
     char messageBuf[sizeof(char) * 140]{};
 
-    //for (int i = 0; i < (sizeof(char) * 140); i++)
-    //{
-    //    if (i % 25 == 0)
-    //    {
-    //        messageBuf[i] = '\n';
-    //    }
-    //}
+    // user entered phone number
+    char areaCode[4] = {};
+    char phoneNum1[4] = {};
+    char phoneNum2[5] = {};
+
+    int phoneCount = 0;
+    bool enableTextMessage = true;
+
+    // used to limit to one text message per going over/under threshold
+    bool alreadySent = false;
+
+    // Carrier options
+    const char* carrierNames[] = { "AT&T", "Boost Mobile", "Consumer Cellular", "Cricket", "C-Spire", "Google Fi", "Mint Mobile",
+                "Sprint", "T-Mobile", "US Cellular", "US Mobile", "Verizon", "Virgin Mobile", "Xfinity Mobile" };
+    int numOfCarriers = end(carrierNames) - begin(carrierNames);
 
     // buffer to store threshold vals
     float upperThres[MAX_SECONDS + 2]{}; // plus 2 to ensure line goes all the way through graph
     float lowerThres[MAX_SECONDS + 2]{};
-
-    // user entered phone number
-    static int areaCode = 0;
-    static int phoneNum1 = 0;
-    static int phoneNum2 = 0;
-
-    int phoneCount = 0;
-
 
     // Main loop
     bool done = false;
@@ -128,7 +128,7 @@ int GUI() {
             static int counter = 0;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-            ImGui::SetNextWindowSize(ImVec2(800, 600));
+            ImGui::SetNextWindowSize(ImVec2(800, 680));
 
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
@@ -141,14 +141,13 @@ int GUI() {
             else if (!g_globals.faren)
             {
                 // green
-                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Celsius: %.2f", finalTempData[1]);
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in Degrees Celsius: %.2f", finalTempData[1]);
 
             }
             else
             {
                 // green
-                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Fahrenheit: %.2f", finalTempData[1]);
-
+                ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in Degrees Fahrenheit: %.2f", finalTempData[1]);
             }
 
             // LED power checkbox
@@ -171,121 +170,259 @@ int GUI() {
                 }
             }
 
-            //Update brightness and contrast
-            if (ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 255)) {
-               //do nothing
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Brightness OK")) {
-                g_globals.currentID = globals::MessageID::setBrightness;
-                if (!writeData()) {
-                    cout << "Failed to update brightness" << endl;
-                }
-            }
-
-            if (ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100)) {
-                //do nothing
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Contrast OK")) {
-                g_globals.currentID = globals::MessageID::setDisplayGamma;
-                if (!writeData()) {
-                    cout << "Failed to update contrast" << endl;
-                }
-            }
-
-
-
-
             // Temperature mode checkbox
             const char* tempBox;
             double yMin; double yMax;
             if (g_globals.faren)
             {
-                tempBox = "Fahrenheit";
+                tempBox = "Fahrenheit ~~";
                 yMin = 50; yMax = 122;
             }
             else
             {
-                tempBox = "Celsius";
+                tempBox = "Celsius ~~";
                 yMin = 10; yMax = 50;
             }
-
-            ImGui::Text("Temperature Mode:"); ImGui::SameLine();
-            ImGui::Checkbox(tempBox, &g_globals.faren);
-
-            // TODO: imgui::inputtextwithhint 
-
-            // Text message attributes:
-            ImGui::Text("\nText Message Information:");
-
-            ImGui::Text("Phone Number: +1 ("); ImGui::SameLine();
-
-            // Phone number entry box width
-            ImGui::PushItemWidth(50); // only affects labelled and framed widgets!!
-
-            // Area code
-            ImGui::InputInt("  ", &areaCode, 0, 100, ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
-            ImGui::Text(")"); ImGui::SameLine();
-
-            // First three digits
-            ImGui::InputInt("   ", &phoneNum1, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
-            ImGui::Text("-"); ImGui::SameLine();
-
-            // Last four digits
-            ImGui::InputInt("    ", &phoneNum2, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
-
-            // Removes set width val
-            //ImGui::PopItemFlag();
-
-            ImGui::PopItemWidth();
-            ImGui::PushItemWidth(75);
 
             static float lowerThreshold = 0.0f;
             static float upperThreshold = 0.0f;
 
+            ImGui::Text("Temperature Mode:"); ImGui::SameLine();
+            if (ImGui::Checkbox(tempBox, &g_globals.faren))
+            {
+                if (g_globals.faren)
+                {
+                    // convert to farenheit
+                    lowerThreshold = (lowerThreshold * (9.0 / 5.0)) + 32.0f;
+                    upperThreshold = (upperThreshold * (9.0 / 5.0)) + 32.0f;
+                }
+                else
+                {
+                    // convert to celsius
+                    lowerThreshold = (lowerThreshold - 32.0f) * (5.0 / 9.0);
+                    upperThreshold = (upperThreshold - 32.0f) * (5.0 / 9.0);
+                }
 
-            // ImGui::Text("Threshold Values:");
+                // update plot
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = upperThreshold;
+                    lowerThres[i] = lowerThreshold;
+                }
+
+            }
+            ImGui::SameLine(); 
+            ImGui::TextColored(ImVec4(255, 0, 0, 255), "Double-Click"); ImGui::SameLine();
+            ImGui::Text("on Graph After Changing Mode");
+
+            // Text message attributes:
+            ImGui::NewLine();
+            //ImGui::Text("Text Message Information:");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Text Message Information:"); // yellow
+
+            ImGui::Text("Phone Number: +1 ("); ImGui::SameLine();
+
+            // Phone number entry box width
+            ImGui::PushItemWidth(30); // only affects labelled and framed widgets!!
+
+            // Area code
+            if (ImGui::InputText(")", areaCode, sizeof(areaCode), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+            {
+                // update string array and verify proper entry
+                for (int i = 0; i < 3; i++)
+                {
+                    // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    if (!isdigit(areaCode[i]))
+                    {       
+                        areaCode[i] = '0';
+                    }
+                }
+            }
+            ImGui::SameLine();
+
+            // First three digits
+            if (ImGui::InputText("-", phoneNum1, sizeof(phoneNum1), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+            {
+                // update string array and verify proper entry
+                for (int i = 0; i < 3; i++)
+                {
+                    // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    if (!isdigit(phoneNum1[i]))
+                    {
+                        phoneNum1[i] = '0';
+                    }
+                }
+            }
+            ImGui::SameLine();
+            ImGui::PopItemWidth();
+            ImGui::PushItemWidth(40);
+            
+            // last 4 digits
+            if (ImGui::InputText(" ~~ Cell Carrier:", phoneNum2, sizeof(phoneNum2), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+            {
+                // update string array and verify proper entry
+                for (int i = 0; i < 4; i++)
+                {
+                    // if .+-*/ entered. OR if entered < 4 digits since chars aren't digits by default
+                    if (!isdigit(phoneNum2[i]))
+                    {
+                        phoneNum2[i] = '0';
+                    }
+                }
+            }
+            ImGui::PopItemWidth();
+
+            // Carrier dropdown
+            ImGui::SameLine();
+            ImGui::PushItemWidth(150);
+            if (ImGui::Combo("  ", (int*)&g_globals.selectedCarrier, carrierNames, numOfCarriers)) {
+                switch (g_globals.selectedCarrier) {
+                case CellCarrier::AT_T:
+                    g_globals.carrier = "txt.att.net";
+                    break;
+                case CellCarrier::Boost_Mobile:
+                    g_globals.carrier = "sms.myboostmobile.com";
+                    break;
+                case CellCarrier::Consumer_Cellular:
+                    g_globals.carrier = "mailmymobile.net";
+                    break;
+                case CellCarrier::Cricket:
+                    g_globals.carrier = "sms.cricketwireless.net";
+                    break;
+                case CellCarrier::C_Spire:
+                    g_globals.carrier = "cspire1.com";
+                    break;
+                case CellCarrier::G_Fi:
+                    g_globals.carrier = "msg.fi.google.com";
+                    break;
+                case CellCarrier::M_Mobile:
+                    g_globals.carrier = "mailmymobile.net";
+                    break;
+                case CellCarrier::Sprint:
+                    g_globals.carrier = "pm.sprint.com";
+                    break;
+                case CellCarrier::TMobile:
+                    g_globals.carrier = "tmomail.net";
+                    break;
+                case CellCarrier::US_Cellular:
+                    g_globals.carrier = "email.uscc.net";
+                    break;
+                case CellCarrier::US_Mobile:
+                    g_globals.carrier = "vtext.com";
+                    break;
+                case CellCarrier::Verizon:
+                    g_globals.carrier = "vtext.com";
+                    break;
+                case CellCarrier::V_Mobile:
+                    g_globals.carrier = "vmobl.com";
+                    break;
+                case CellCarrier::X_Mobile:
+                    g_globals.carrier = "vtext.com";
+                    break;
+                default:
+                    g_globals.carrier = "txt.att.net";
+                    break;
+                };
+            }
+
+            ImGui::PopItemWidth();
+            ImGui::PushItemWidth(75);
+
+            //ImGui::NewLine();
+            // yellow text
+            //ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Threshold Values:"); ImGui::SameLine();
+            ImGui::Text("Threshold Values: Press"); ImGui::SameLine(); 
+            ImGui::TextColored(ImVec4(255, 0, 0, 255), "Enter"); ImGui::SameLine(); ImGui::Text("to Save Your Entry");
+
             if (g_globals.faren)
             {
                 ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
-                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (lowerThreshold > upperThreshold && upperThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        upperThreshold = upperThreshold + 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         lowerThres[i] = lowerThreshold;
+                        upperThres[i] = upperThreshold;
                     }
                 }
                 ImGui::Text("Upper Threshold in Fahrenheit:"); ImGui::SameLine();
-                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (upperThreshold < lowerThreshold) // && lowerThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        lowerThreshold = lowerThreshold - 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
+                        lowerThres[i] = lowerThreshold;
                     }
                 }
             }
             else
             {
                 ImGui::Text("Lower Threshold in Celsius:"); ImGui::SameLine();
-                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (lowerThreshold > upperThreshold && upperThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        upperThreshold = upperThreshold + 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
+                        upperThres[i] = upperThreshold;
                         lowerThres[i] = lowerThreshold;
                     }
                 }
                 ImGui::Text("Upper Threshold in Celsius:"); ImGui::SameLine();
-                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
+                if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_EnterReturnsTrue))
                 {
+                    // this will swap the temperatures, but only when you have the EnterReturnsTrue flag
+                    if (upperThreshold < lowerThreshold) // && lowerThreshold != 0)
+                    {
+                        float temp = lowerThreshold;
+                        lowerThreshold = upperThreshold;
+                        upperThreshold = temp;
+                    }
+                    else if (lowerThreshold == upperThreshold)
+                    {
+                        lowerThreshold = lowerThreshold - 1;
+                    }
+
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
+                        lowerThres[i] = lowerThreshold;
                     }
+                    alreadySent = false;
                 }
             }
 
@@ -295,48 +432,111 @@ int GUI() {
             ImGui::Text("Text Message Content:"); ImGui::SameLine();
             //ImGui::PushItemWidth(-1.0f);
             //ImGui::PushTextWrapPos();
-            ImGui::InputTextMultiline(" ", messageBuf, sizeof(messageBuf), ImVec2(600, ImGui::GetTextLineHeightWithSpacing() * 3)); // 84
+            if (ImGui::InputTextMultiline(" ", messageBuf, sizeof(messageBuf), ImVec2(600, ImGui::GetTextLineHeightWithSpacing() * 2)))
+            {
+                g_globals.message = messageBuf;
+            }
             //ImGui::PopTextWrapPos();
             //ImGui::PopItemWidth();
 
+            const char* messageBox;
+            if (enableTextMessage)
+            {
+                // DO NOT DELETE THE SPACE AT THE END
+                messageBox = "On "; 
+            }
+            else
+            {
+                // DO NOT DELETE THE SPACE AT THE END
+                messageBox = "Off ";
+            }
+
+            ImGui::Text("Enable Text Message?"); ImGui::SameLine();
+            ImGui::Checkbox(messageBox, &enableTextMessage);
+
+            // if text message is enabled AND temperature isn't already outside either threshold
+            if (enableTextMessage && !alreadySent)
+            {
+                // if outside thresholds, send message
+                // TODO can split up statement if we want a unique message for under lower threshold vs above upper threshold
+                if (finalTempData[1] < lowerThreshold || finalTempData[1] > upperThreshold)
+                {
+                    // update phone number
+                    g_globals.phoneNumber = "";
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (i <= 2) // area code
+                        {
+                            g_globals.phoneNumber.append(std::to_string(areaCode[i]));
+                        }
+                        else if (i > 2 && i <= 5) // middle 3 digits
+                        {
+                            g_globals.phoneNumber.append(std::to_string(phoneNum1[i - 3]));
+                        }
+                        else // last 4 digits
+                        {
+                            g_globals.phoneNumber.append(std::to_string(phoneNum2[i - 6]));
+                        }
+                    }
+
+                    if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
+                        alreadySent = true;
+                        SendSMS();
+                    }
+                }
+            }
+            // if was outside of threshold range (alreadySent == true) AND is now inside threshold range, update alreadySent so text can be sent again
+            else if (alreadySent && 
+                (finalTempData[1] > lowerThreshold) && 
+                (finalTempData[1] < upperThreshold))
+            {
+                alreadySent = false;
+            }
 
             ImGui::NewLine();
+            //ImGui::Text("LED Brightness and Contrast:");
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "LED Brightness and Contrast:"); 
 
+            ImGui::PushItemWidth(300);
 
+            //Update brightness
+            ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 254);
+            ImGui::SameLine();
+            if (ImGui::Button("Update")) {
+                g_globals.currentID = globals::MessageID::setBrightness;
+                if (!writeData()) {
+                    cout << "Failed to update brightness" << endl;
+                }
+            }
 
-            //ImPlotStyleVar_FitPadding,         // ImVec2, additional fit padding as a percentage of the fit extents (e.g. ImVec2(0.1f,0.1f) adds 10% to the fit extents of X and Y)
-            //ImPlotStyleVar_PlotDefaultSize,    // ImVec2, default size used when ImVec2(0,0) is passed to BeginPlot
-            //ImPlotStyleVar_PlotMinSize,        // ImVec2, minimum size plot frame can be when shrunk
+            // Update contrast
+            ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100);
+            ImGui::SameLine();
+            if (ImGui::Button("Update ")) {
+                g_globals.currentID = globals::MessageID::setDisplayGamma;
+                if (!writeData()) {
+                    cout << "Failed to update contrast" << endl;
+                }
+            }
 
-            // To change plot size:
-            // ImPlot::PushStyleVar(ImPlotStyleVar_PlotDefaultSize, ImVec2(-100, 100));
-
-
+            ImGui::PopItemWidth();
+            ImGui::NewLine();
 
             ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f);  // Set line thickness to 2.0
             ImPlot::PushStyleVar(ImPlotStyleVar_Marker, 1);  // type of point/marker
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 2.0f);  // size of point/marker
 
-
-            // ImPlotFlags_NoMouseText to remove text that shows when moving mouse on graph
-            // ImPlotFlags_Equal to change x and y axis pairs
-            // ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
-            //if (!g_globals.tempData.empty()) {
-            //    if (ImPlot::BeginPlot("Temperature Data")) {
-            //        ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
-            //        //ImPlot::EndPlot();
-
             if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
                 if (g_globals.faren)
                 {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Fahrenheit",
+                    ImPlot::SetupAxes("Seconds ago from Current Time", "Temperature in Degrees Fahrenheit",
                         ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
                         ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
                     );
                 }
                 else
                 {
-                    ImPlot::SetupAxes("Seconds ago from current time", "Temperature in Degrees Celsius",
+                    ImPlot::SetupAxes("Seconds ago from Current Time", "Temperature in Degrees Celsius",
                         ImPlotAxisFlags_Invert, // make x axis go from 300-0 instead of 0-300
                         ImPlotAxisFlags_Opposite // visually move y axis to the right side of the graph
                     );
@@ -355,9 +555,6 @@ int GUI() {
                     );
                 }
 
-                // This empty check doesn't work lmao, by defaul lower and upper thres are filled with 0's
-                // This means if threshold values aren't set, it'll still plot a line at temp = 0
-                // So that means there are two offscreen lines at temp = 0, but those are outside the graph limits so...
                 if (empty(lowerThres) == false)
                 {
                     ImPlot::PlotLine("Lower Threshold", &lowerThres[0], MAX_SECONDS + 1,
