@@ -46,7 +46,7 @@ int GUI() {
 
     DWORD winStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU; // | WS_BORDER; //WS_OVERLAPPED | WS_THICKFRAME;
 
-    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 150, 814, 600, NULL, NULL, wc.hInstance, NULL);
+    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("TEAM 0xC"), winStyle, 400, 150, 814, 680, NULL, NULL, wc.hInstance, NULL);
 
     if (!CreateDeviceD3D(hwnd))
     {
@@ -94,6 +94,7 @@ int GUI() {
     static int phoneNum2 = 0;
 
     int phoneCount = 0;
+    bool enableTextMessage = true;
 
 
     // Main loop
@@ -128,7 +129,7 @@ int GUI() {
             static int counter = 0;
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-            ImGui::SetNextWindowSize(ImVec2(800, 600));
+            ImGui::SetNextWindowSize(ImVec2(800, 680));
 
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
@@ -171,36 +172,6 @@ int GUI() {
                 }
             }
 
-            //Update brightness and contrast
-            if (ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 255)) {
-               //do nothing
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Brightness OK")) {
-                g_globals.currentID = globals::MessageID::setBrightness;
-                if (!writeData()) {
-                    cout << "Failed to update brightness" << endl;
-                }
-            }
-
-            if (ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100)) {
-                //do nothing
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Contrast OK")) {
-                g_globals.currentID = globals::MessageID::setDisplayGamma;
-                if (!writeData()) {
-                    cout << "Failed to update contrast" << endl;
-                }
-            }
-
-
-
-
             // Temperature mode checkbox
             const char* tempBox;
             double yMin; double yMax;
@@ -232,12 +203,57 @@ int GUI() {
             ImGui::InputInt("  ", &areaCode, 0, 100, ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
             ImGui::Text(")"); ImGui::SameLine();
 
+            // ensure positive and not longer than 3 digits 
+            if (areaCode < 0 || areaCode >= 1000)
+            {
+                areaCode = abs(areaCode % 1000);
+            }
+            // ensure not less than 3 digits
+            if (areaCode != 0)
+            {
+                while (areaCode < 100) // TODO: this works except for a case where an areacode starts with 0 (063) would be invalid
+                {
+                    areaCode = areaCode * 10;
+                }
+            }
+
+
             // First three digits
             ImGui::InputInt("   ", &phoneNum1, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank); ImGui::SameLine();
             ImGui::Text("-"); ImGui::SameLine();
 
+            // ensure positive and not longer than 3 digits
+            if (phoneNum1 < 0 || phoneNum1 >= 1000)
+            {
+                phoneNum1 = abs(phoneNum1 % 1000);
+            }
+
+            // ensure not less than 3 digits
+            if (phoneNum1 != 0)
+            {
+                while (phoneNum1 < 100)
+                {
+                    phoneNum1 = phoneNum1 * 10;
+                }
+            }
+            
+
             // Last four digits
             ImGui::InputInt("    ", &phoneNum2, 0, 100, ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank);
+
+            if (phoneNum2 < 0 || phoneNum2 >= 10000)
+            {
+                phoneNum2 = abs(phoneNum2 % 10000);
+            }
+
+            // ensure not less than 4 digits
+            if (phoneNum2 != 0)
+            {
+                while (phoneNum2 < 100)
+                {
+                    phoneNum2 = phoneNum2 * 10;
+                }
+            }
 
             // Removes set width val
             //ImGui::PopItemFlag();
@@ -247,6 +263,8 @@ int GUI() {
 
             static float lowerThreshold = 0.0f;
             static float upperThreshold = 0.0f;
+            bool inLowerThres = false;
+            bool inUpperThres = true;
 
 
             // ImGui::Text("Threshold Values:");
@@ -255,6 +273,7 @@ int GUI() {
                 ImGui::Text("Lower Threshold in Fahrenheit:"); ImGui::SameLine();
                 if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
                 {
+                    inLowerThres = true;
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         lowerThres[i] = lowerThreshold;
@@ -263,6 +282,7 @@ int GUI() {
                 ImGui::Text("Upper Threshold in Fahrenheit:"); ImGui::SameLine();
                 if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
                 {
+                    inUpperThres = true;
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
@@ -274,6 +294,7 @@ int GUI() {
                 ImGui::Text("Lower Threshold in Celsius:"); ImGui::SameLine();
                 if (ImGui::InputFloat("      ", &lowerThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
                 {
+                    inLowerThres = true;
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         lowerThres[i] = lowerThreshold;
@@ -282,11 +303,35 @@ int GUI() {
                 ImGui::Text("Upper Threshold in Celsius:"); ImGui::SameLine();
                 if (ImGui::InputFloat("       ", &upperThreshold, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal))
                 {
+                    inUpperThres = true;
                     for (int i = 0; i < (MAX_SECONDS + 2); i++)
                     {
                         upperThres[i] = upperThreshold;
                     }
                 }
+            }
+
+            // this monstrosity checks if that the lower and upper thres are valid. If not, reset them
+            // ignores 0 since that's the initial value
+            // note that if an upper bound is entered that's less than the lower bound, the lower bound changes! We can make it the other way around
+            if (lowerThres[0] != 0 && upperThres[0] != 0 && // inLowerThres &&
+                lowerThres[0] > upperThres[0])
+            {
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    upperThres[i] = lowerThres[i] + 1;
+                }
+                upperThreshold = lowerThres[0] + 1;
+            }
+            else if (lowerThres[0] != 0 && upperThres[0] != 0 && inUpperThres &&
+                upperThres[0] < lowerThres[0] &&
+                ((int)(upperThreshold/10) >= ((int)(lowerThreshold/10)))) // don't ask, but this covers the case where 50 is your lower, you want to type 90 so you type 9, then lower resets to 8
+            {
+                for (int i = 0; i < (MAX_SECONDS + 2); i++)
+                {
+                    lowerThres[i] = upperThres[i] - 1;
+                }
+                lowerThreshold = upperThres[0] - 1;
             }
 
             ImGui::PopItemWidth();
@@ -299,6 +344,38 @@ int GUI() {
             //ImGui::PopTextWrapPos();
             //ImGui::PopItemWidth();
 
+
+            ImGui::Checkbox("Enable Text Message?", &enableTextMessage);
+
+            ImGui::NewLine();
+            ImGui::Text("LED Brightness and Contrast:");
+
+            //Update brightness and contrast
+            if (ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 254)) {
+                //do nothing
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Update")) {
+                g_globals.currentID = globals::MessageID::setBrightness;
+                if (!writeData()) {
+                    cout << "Failed to update brightness" << endl;
+                }
+            }
+
+            if (ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100)) {
+                //do nothing
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Update ")) {
+                g_globals.currentID = globals::MessageID::setDisplayGamma;
+                if (!writeData()) {
+                    cout << "Failed to update contrast" << endl;
+                }
+            }
 
             ImGui::NewLine();
 
