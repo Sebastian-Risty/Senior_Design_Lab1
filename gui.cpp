@@ -96,6 +96,10 @@ int GUI() {
     float upperThres[MAX_SECONDS + 2]{}; // plus 2 to ensure line goes all the way through graph
     float lowerThres[MAX_SECONDS + 2]{};
 
+    // Temperature mode checkbox
+    static float lowerThreshold = 10.0f;
+    static float upperThreshold = 50.0f;
+
     // Main loop
     bool done = false;
     while (!done) {
@@ -182,9 +186,7 @@ int GUI() {
                 }
             }
 
-            // Temperature mode checkbox
-            static float lowerThreshold = 0.0f;
-            static float upperThreshold = 0.0f;
+            
 
             const char* tempBox;
             double yMin; double yMax;
@@ -192,8 +194,6 @@ int GUI() {
             {
                 tempBox = "Fahrenheit ~~";
                 yMin = 50; yMax = 122;
-                lowerThreshold = 50.0f;
-                upperThreshold = 122.0f;
 
                 for (int i = 0; i < (MAX_SECONDS + 2); i++)
                 {
@@ -205,8 +205,6 @@ int GUI() {
             {
                 tempBox = "Celsius ~~";
                 yMin = 10; yMax = 50;
-                lowerThreshold = 10.0f;
-                upperThreshold = 50.0f;
 
                 for (int i = 0; i < (MAX_SECONDS + 2); i++)
                 {
@@ -519,7 +517,7 @@ int GUI() {
 
                     if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
                         alreadySent = true;
-                        SendSMS();
+                        //SendSMS();
                     }
                 }
             }
