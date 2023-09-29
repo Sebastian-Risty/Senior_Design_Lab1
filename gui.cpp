@@ -129,6 +129,7 @@ int GUI() {
 
             ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
             ImGui::SetNextWindowSize(ImVec2(800, 680));
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
 
             ImGui::Begin("SD Lab1!", NULL, window_flags);
 
@@ -579,7 +580,6 @@ int GUI() {
                     );
                 }
 
-
                 ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 0, MAX_SECONDS);
                 ImPlot::SetupAxisLimitsConstraints(ImAxis_Y1, yMin, yMax);
 
@@ -614,7 +614,6 @@ int GUI() {
             }
 
             ImGui::End();
-
 
             ImPlot::PopStyleVar();
 
