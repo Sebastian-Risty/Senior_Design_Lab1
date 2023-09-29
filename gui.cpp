@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "BT.h"
+#include "sms.h"
 
 // Data
 static LPDIRECT3D9              g_pD3D = NULL;
@@ -421,6 +422,7 @@ int GUI() {
                         upperThres[i] = upperThreshold;
                         lowerThres[i] = lowerThreshold;
                     }
+                    alreadySent = false;
                 }
             }
 
@@ -477,8 +479,10 @@ int GUI() {
                         }
                     }
 
-                    alreadySent = true;
-                    // TODO: SendSMS();
+                  if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
+                        alreadySent = true;
+                        SendSMS();
+                    }
                 }
             }
             // if was outside of threshold range (alreadySent == true) AND is now inside threshold range, update alreadySent so text can be sent again
