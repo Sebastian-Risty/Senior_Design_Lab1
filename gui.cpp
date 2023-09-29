@@ -93,14 +93,16 @@ int GUI() {
     char phoneNum1[4] = {};
     char phoneNum2[5] = {};
 
-    // use these for sms function call
-    char* areaCodeStr = new char [4];
-    char* phoneNum1Str = new char[4];
-    char* phoneNum2Str = new char[5];
-
     int phoneCount = 0;
     bool enableTextMessage = true;
 
+    // used to limit to one text message per going over/under threshold
+    bool alreadySent = false;
+
+    // Carrier options
+    const char* carrierNames[] = { "AT&T", "Boost Mobile", "Consumer Cellular", "Cricket", "C-Spire", "Google Fi", "Mint Mobile",
+                "Sprint", "T-Mobile", "US Cellular", "US Mobile", "Verizon", "Virgin Mobile", "Xfinity Mobile" };
+    int numOfCarriers = end(carrierNames) - begin(carrierNames);
 
     // Main loop
     bool done = false;
@@ -154,7 +156,6 @@ int GUI() {
             {
                 // green
                 ImGui::TextColored(ImVec4(0, 255, 0, 255), "Current Temperature in degrees Fahrenheit: %.2f", finalTempData[1]);
-
             }
 
             // LED power checkbox
@@ -192,7 +193,8 @@ int GUI() {
             }
 
             ImGui::Text("Temperature Mode:"); ImGui::SameLine();
-            ImGui::Checkbox(tempBox, &g_globals.faren);
+            ImGui::Checkbox(tempBox, &g_globals.faren); ImGui::SameLine();
+            ImGui::Text("(Double-Click on Graph After Changing Mode)");
 
             // Text message attributes:
             ImGui::Text("\nText Message Information:");
@@ -208,19 +210,14 @@ int GUI() {
                 // update string array and verify proper entry
                 for (int i = 0; i < 3; i++)
                 {
-                    if (isdigit(areaCode[i]))
-                    {                        
-                        areaCodeStr[i] = areaCode[i];
-                    }
-                    else // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
-                    {
+                    // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    if (!isdigit(areaCode[i]))
+                    {       
                         areaCode[i] = '0';
-                        areaCodeStr[i] = areaCode[i];
                     }
                 }
             }
             ImGui::SameLine(); ImGui::Text(")"); ImGui::SameLine();
-
 
             // First three digits
             if (ImGui::InputText("   ", phoneNum1, sizeof(phoneNum1), ImGuiInputTextFlags_NoHorizontalScroll | ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
@@ -228,14 +225,10 @@ int GUI() {
                 // update string array and verify proper entry
                 for (int i = 0; i < 3; i++)
                 {
-                    if (isdigit(phoneNum1[i]))
-                    {
-                        phoneNum1Str[i] = phoneNum1[i];
-                    }
-                    else // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    // if .+-*/ entered. OR if entered < 3 digits since chars aren't digits by default
+                    if (!isdigit(phoneNum1[i]))
                     {
                         phoneNum1[i] = '0';
-                        phoneNum1Str[i] = phoneNum1[i];
                     }
                 }
             }
@@ -247,37 +240,60 @@ int GUI() {
                 // update string array and verify proper entry
                 for (int i = 0; i < 4; i++)
                 {
-                    if (isdigit(phoneNum2[i]))
-                    {
-                        phoneNum2Str[i] = phoneNum2[i];
-                    }
-                    else // if .+-*/ entered. OR if entered < 4 digits since chars aren't digits by default
+                    // if .+-*/ entered. OR if entered < 4 digits since chars aren't digits by default
+                    if (!isdigit(phoneNum2[i]))
                     {
                         phoneNum2[i] = '0';
-                        phoneNum2Str[i] = phoneNum2[i];
                     }
                 }
             }
 
+            // Carrier dropdown
             ImGui::SameLine();
-            // List of carrier names for the dropdown
-            const char* carrierNames[] = { "Verizon", "AT&T", "T-Mobile", "Sprint" };
-
-            ImGui::PushItemWidth(100); // only affects labelled and framed widgets!!
-            // Inside your ImGui rendering loop:
-            if (ImGui::Combo("Cell Carrier", (int*)&g_globals.selectedCarrier, carrierNames, 4)) {
+            ImGui::PushItemWidth(150);
+            if (ImGui::Combo("Cell Carrier", (int*)&g_globals.selectedCarrier, carrierNames, numOfCarriers)) {
                 switch (g_globals.selectedCarrier) {
-                case CellCarrier::Verizon:
-                    g_globals.carrier = "vtext.com";
-                    break;
                 case CellCarrier::AT_T:
                     g_globals.carrier = "txt.att.net";
+                    break;
+                case CellCarrier::Boost_Mobile:
+                    g_globals.carrier = "sms.myboostmobile.com";
+                    break;
+                case CellCarrier::Consumer_Cellular:
+                    g_globals.carrier = "mailmymobile.net";
+                    break;
+                case CellCarrier::Cricket:
+                    g_globals.carrier = "sms.cricketwireless.net";
+                    break;
+                case CellCarrier::C_Spire:
+                    g_globals.carrier = "cspire1.com";
+                    break;
+                case CellCarrier::G_Fi:
+                    g_globals.carrier = "msg.fi.google.com";
+                    break;
+                case CellCarrier::M_Mobile:
+                    g_globals.carrier = "mailmymobile.net";
+                    break;
+                case CellCarrier::Sprint:
+                    g_globals.carrier = "pm.sprint.com";
                     break;
                 case CellCarrier::TMobile:
                     g_globals.carrier = "tmomail.net";
                     break;
-                case CellCarrier::Sprint:
-                    g_globals.carrier = "pm.sprint.com";
+                case CellCarrier::US_Cellular:
+                    g_globals.carrier = "email.uscc.net";
+                    break;
+                case CellCarrier::US_Mobile:
+                    g_globals.carrier = "vtext.com";
+                    break;
+                case CellCarrier::Verizon:
+                    g_globals.carrier = "vtext.com";
+                    break;
+                case CellCarrier::V_Mobile:
+                    g_globals.carrier = "vmobl.com";
+                    break;
+                case CellCarrier::X_Mobile:
+                    g_globals.carrier = "vtext.com";
                     break;
                 default:
                     g_globals.carrier = "txt.att.net";
@@ -370,25 +386,61 @@ int GUI() {
             ImGui::Text("Text Message Content:"); ImGui::SameLine();
             //ImGui::PushItemWidth(-1.0f);
             //ImGui::PushTextWrapPos();
-            ImGui::InputTextMultiline(" ", messageBuf, sizeof(messageBuf), ImVec2(600, ImGui::GetTextLineHeightWithSpacing() * 3)); // 84
+            if (ImGui::InputTextMultiline(" ", messageBuf, sizeof(messageBuf), ImVec2(600, ImGui::GetTextLineHeightWithSpacing() * 2)))
+            {
+                g_globals.message = messageBuf;
+            }
             //ImGui::PopTextWrapPos();
             //ImGui::PopItemWidth();
 
 
             ImGui::Checkbox("Enable Text Message?", &enableTextMessage);
 
+            // if text message is enabled AND temperature isn't already outside either threshold
+            if (enableTextMessage && !alreadySent)
+            {
+                // if outside thresholds, send message
+                // TODO can split up statement if we want a unique message for under lower threshold vs above upper threshold
+                if (finalTempData[1] < lowerThreshold || finalTempData[1] > upperThreshold)
+                {
+                    // update phone number
+                    g_globals.phoneNumber = "";
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (i <= 2) // area code
+                        {
+                            g_globals.phoneNumber.append(std::to_string(areaCode[i]));
+                        }
+                        else if (i > 2 && i <= 5) // middle 3 digits
+                        {
+                            g_globals.phoneNumber.append(std::to_string(phoneNum1[i - 3]));
+                        }
+                        else // last 4 digits
+                        {
+                            g_globals.phoneNumber.append(std::to_string(phoneNum2[i - 6]));
+                        }
+                    }
+
+                    alreadySent = true;
+                    // TODO: SendSMS();
+                }
+            }
+            // if was outside of threshold range (alreadySent == true) AND is now inside threshold range, update alreadySent so text can be sent again
+            else if (alreadySent && 
+                (finalTempData[1] > lowerThreshold) && 
+                (finalTempData[1] < upperThreshold))
+            {
+                alreadySent = false;
+            }
+
             ImGui::NewLine();
             ImGui::Text("LED Brightness and Contrast:");
 
             ImGui::PushItemWidth(300);
 
-            //Update brightness and contrast
-            if (ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 254)) {
-                //do nothing
-            }
-
+            //Update brightness
+            ImGui::SliderInt("Brightness", &g_globals.brightness, 0, 254);
             ImGui::SameLine();
-
             if (ImGui::Button("Update")) {
                 g_globals.currentID = globals::MessageID::setBrightness;
                 if (!writeData()) {
@@ -396,12 +448,9 @@ int GUI() {
                 }
             }
 
-            if (ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100)) {
-                //do nothing
-            }
-
+            // Update contrast
+            ImGui::SliderInt("Contrast", &g_globals.contrast, 0, 100);
             ImGui::SameLine();
-
             if (ImGui::Button("Update ")) {
                 g_globals.currentID = globals::MessageID::setDisplayGamma;
                 if (!writeData()) {
@@ -429,13 +478,7 @@ int GUI() {
             ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 2.0f);  // size of point/marker
 
 
-            // ImPlotFlags_NoMouseText to remove text that shows when moving mouse on graph
-            // ImPlotFlags_Equal to change x and y axis pairs
-            // ImFlipFlag(plot.Flags, ImPlotFlags_NoLegend);
-            //if (!g_globals.tempData.empty()) {
-            //    if (ImPlot::BeginPlot("Temperature Data")) {
-            //        ImPlot::PlotLine("Temperature in Celsius", &g_globals.tempData[0], g_globals.tempData.size());  // Assume you have the0 data in an array
-            //        //ImPlot::EndPlot();
+
 
             if (ImPlot::BeginPlot("Temperature Data (Right-Click for Options)", ImVec2(-1, 0), ImPlotFlags_Crosshairs)) {
                 if (g_globals.faren)
