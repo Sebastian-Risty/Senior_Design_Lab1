@@ -4,7 +4,7 @@
 
 int main()
 {
-    //SendSMS(); TODO: testing
+    //SendSMS();
 
     initPair();
 
