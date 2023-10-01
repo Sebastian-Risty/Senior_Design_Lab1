@@ -19,7 +19,7 @@ wstring findSerial(BLUETOOTH_ADDRESS addr) {
             continue;
         }
 
-        wstring convertedAddress = std::to_wstring(addr.ullLong);
+        wstring convertedAddress = to_wstring(addr.ullLong);
         //wcout << L"Converted Address: " << convertedAddress << L" Device ID: " << deviceID << endl;
 
         if (wcsstr(deviceID, L"BTHENUM\\{00001101-0000-1000-8000-00805F9B34FB}_LOCALMFG&") && wcsstr(deviceID, L"&0&98D391FE83EC_C00000000")) {
@@ -35,10 +35,10 @@ wstring findSerial(BLUETOOTH_ADDRESS addr) {
             //wcout << L"Friendly Name for matched address: " << comPortName << endl;
 
             // Extract COM Port from Friendly Name
-            std::wstring friendlyName(comPortName);
-            std::size_t startPos = friendlyName.find(L"(COM");
-            std::size_t endPos = friendlyName.find(L")");
-            if (startPos != std::wstring::npos && endPos != std::wstring::npos) {
+            wstring friendlyName(comPortName);
+            size_t startPos = friendlyName.find(L"(COM");
+            size_t endPos = friendlyName.find(L")");
+            if (startPos != wstring::npos && endPos != wstring::npos) {
                 return friendlyName.substr(startPos + 1, endPos - startPos - 1);
             }
         }
@@ -52,7 +52,7 @@ bool initPair(bool isReconnect) {
     BLUETOOTH_FIND_RADIO_PARAMS btfrp = { sizeof(btfrp) };
     HANDLE hRadio = NULL;
     HBLUETOOTH_RADIO_FIND hFind = BluetoothFindFirstRadio(&btfrp, &hRadio);
-    std::wstring comPort;
+    wstring comPort;
 
     if (hFind != NULL) {
         do {
@@ -74,16 +74,16 @@ bool initPair(bool isReconnect) {
             if (hDevFind != NULL) {
                 do {
                     if (wcscmp(bdi.szName, L"HC-05") == 0) {
-                        //std::wcout << L"Found HC-05 with address: " << bdi.Address.ullLong << std::endl;
+                        //wcout << L"Found HC-05 with address: " << bdi.Address.ullLong << endl;
 
                         comPort = findSerial(bdi.Address);
                         if (!comPort.empty()) {
                             if (!isReconnect) {
-                                std::wcout << L"HC-05 found on: " << comPort << std::endl;
+                                wcout << L"HC-05 found on: " << comPort << endl;
                             }
                         }
                         else {
-                            std::cout << "Couldn't determine the COM port for HC-05." << std::endl;
+                            cout << "Couldn't determine the COM port for HC-05." << endl;
                         }
 
                         BluetoothFindDeviceClose(hDevFind);
@@ -97,7 +97,7 @@ bool initPair(bool isReconnect) {
     }
 
     if (comPort.empty()) {
-        cerr << "Couldn't determine the COM port for HC-05." << std::endl;
+        cerr << "Couldn't determine the COM port for HC-05." << endl;
         return false;
     }
 
@@ -263,7 +263,7 @@ bool readData() {
                 for (int i = 0; i < 300; ++i) {
                     int currentIndex = (tempIndex + i) % ARRAY_SIZE;
                     if (buffer[currentIndex] <= -1270) {
-                        g_globals.tempData.push_back(std::sqrt(-1));
+                        g_globals.tempData.push_back(sqrt(-1));
                     }
                     else {
                         g_globals.tempData.push_back((float)buffer[currentIndex] / 10.f);
@@ -278,7 +278,7 @@ bool readData() {
             else {
                 for (int i = 0; i < bufferIndex; ++i) {
                     if (buffer[i] <= -1270) {
-                        g_globals.tempData.push_back(std::sqrt(-1));
+                        g_globals.tempData.push_back(sqrt(-1));
                     }
                     else {
                         g_globals.tempData.push_back((float)buffer[i] / 10.f);
