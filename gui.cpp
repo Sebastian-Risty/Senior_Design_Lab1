@@ -517,7 +517,7 @@ int GUI() {
 
                     if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
                         alreadySent = true;
-                        //SendSMS();
+                        SendSMS();
                     }
                 }
             }
