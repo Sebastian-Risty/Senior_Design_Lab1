@@ -9,7 +9,7 @@
 #define ONE_WIRE_BUS 1
 
 #define BT_PIN_RX 11
-#define BT_PIN_TX 12   // RX from BT -> pin 3 (TX on arduino)
+#define BT_PIN_TX 12   // RX from BT -> pin 12 (TX on arduino)
 #define BT_PIN_STATUS 13
 
 #define RATE_50HZ 20

@@ -4,7 +4,7 @@ void SendSMS()
 {
     CURL* curl;
     CURLcode res;
-    std::string readBuffer;
+    string readBuffer;
 
     curl = curl_easy_init();
     if (curl)
@@ -13,7 +13,7 @@ void SendSMS()
         headers = curl_slist_append(headers, "Authorization: Bearer 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");
         headers = curl_slist_append(headers, "Content-Type: application/json");
 
-        std::ostringstream payloadStream;
+        ostringstream payloadStream;
         payloadStream << R"({
             "personalizations": [{
                 "to": [{
@@ -30,7 +30,7 @@ void SendSMS()
             }]
         })";
 
-        std::string payload = payloadStream.str();
+        string payload = payloadStream.str();
 
         curl_easy_setopt(curl, CURLOPT_URL, "https://api.sendgrid.com/v3/mail/send");
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload.c_str());
@@ -40,14 +40,14 @@ void SendSMS()
         res = curl_easy_perform(curl);
         if (res != CURLE_OK)
         {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+            cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << endl;
         }
         else
         {
             long response_code;
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-            std::cout << "Response code: " << response_code << std::endl;
-            std::cout << "Response: " << readBuffer << std::endl;
+            cout << "Response code: " << response_code << endl;
+            cout << "Response: " << readBuffer << endl;
         }
 
         curl_slist_free_all(headers);
