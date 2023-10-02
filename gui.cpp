@@ -39,9 +39,6 @@ void setupTempData()
         }
         x++;
     }
-
-    finalTempData[300] = finalTempData[299];
-    finalTempData[0] = finalTempData[1];
 }
 
 int GUI() {
@@ -520,7 +517,7 @@ int GUI() {
 
                     if (!isnan(finalTempData[1]) && finalTempData[1] > -127) {
                         alreadySent = true;
-                        SendSMS();
+                        //SendSMS();
                     }
                 }
             }
@@ -586,7 +583,7 @@ int GUI() {
 
                 if (empty(finalTempData) == false)
                 {
-                    ImPlot::PlotLine("Recorded Temperature", &finalTempData[0], MAX_SECONDS,
+                    ImPlot::PlotLine("Recorded Temperature", &finalTempData[0], MAX_SECONDS + 1,
                         1.0,
                         0,
                         ImPlotLineFlags_NoClip // makes points/markers on border of constraints visible
