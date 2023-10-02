@@ -10,7 +10,7 @@ void SendSMS()
     if (curl)
     {
         struct curl_slist* headers = NULL;
-        headers = curl_slist_append(headers, "Authorization: Bearer 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");
+        headers = curl_slist_append(headers, "Authorization: Bearer API_KEY_HERE");  // add valid sendgrid API key + change email in payload to the one linked in sendgrid account
         headers = curl_slist_append(headers, "Content-Type: application/json");
 
         ostringstream payloadStream;
